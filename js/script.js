@@ -235,6 +235,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (moreCount > 0) {
             fasilitasHTML += `<span class='bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full cursor-pointer relative more-facilities-tag' title='${fasilitas.slice(maxShow).join(', ')}'>+${moreCount}</span>`;
         }
+        // Ambil rating dari review (presisi 1) dan label huruf capitalize
+        function capitalize(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+        }
+        const avgRating = hotel.avg_review_rating !== null && hotel.avg_review_rating !== undefined ? hotel.avg_review_rating.toFixed(1) : '-';
+        const ratingLabel = hotel.avg_review_rating !== null && hotel.avg_review_rating !== undefined ? capitalize(getRatingLabel(hotel.avg_review_rating)) : '-';
         return `
             <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer" onclick="navigate('detail', ${hotel.id})">
                 <img src="${hotel.image}" class="w-full h-56 object-cover" alt="Gambar ${hotel.name}">
@@ -243,9 +250,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h3 class="text-xl font-bold text-brand-black mt-1">${hotel.name}</h3>
                     <div class="flex justify-between items-center mt-4">
                         <p class="text-lg font-semibold text-brand-green">${formatCurrency(hotel.price)} <span class="text-sm font-normal text-brand-grey">/ malam</span></p>
-                        <div class="flex items-center gap-1 text-yellow-500">
-                            <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
-                            <span class="font-bold text-brand-black">${hotel.rating}</span>
+                        <div class="flex flex-col items-end">
+                            <span class="font-bold text-brand-black text-lg">
+                                <svg class="inline w-5 h-5 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+                                ${avgRating}
+                            </span>
+                            <span class="text-xs text-brand-green font-semibold">${ratingLabel}</span>
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-1 mt-3">${fasilitasHTML}</div>
