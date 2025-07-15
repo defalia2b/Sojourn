@@ -126,6 +126,29 @@ body {
 }
 
 /* =================================================================
+   Map Styling
+   ================================================================= */
+#hotel-map {
+    position: relative;
+    z-index: 1;
+    background-color: #f8f9fa;
+}
+
+#hotel-map .leaflet-container {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+#hotel-map .leaflet-popup-content-wrapper {
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+#hotel-map .leaflet-popup-tip {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* =================================================================
    Other BUTTONS
    ================================================================= */
 .view-all-button {

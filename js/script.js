@@ -160,6 +160,11 @@ document.addEventListener('DOMContentLoaded', () => {
             header.classList.remove('hidden');
             footer.classList.remove('hidden');
         }
+        // Cleanup map if navigating away from detail page
+        if (window.location.hash !== '#detail' && window.currentMap) {
+            cleanupMap();
+        }
+        
         // Render and show the correct page or form
         if (pageId === 'home') {
             renderHomePage();
@@ -191,6 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen for hash changes
     window.addEventListener('hashchange', showPageBasedOnURL);
+    
+    // Cleanup map when navigating away from detail page
+    function cleanupMap() {
+        if (window.currentMap) {
+            window.currentMap.remove();
+            window.currentMap = null;
+        }
+    }
 
     // --- User Authentication Logic (LOGIN/REGISTER/LOGOUT) ---
     function updateHeaderUI() {
@@ -530,8 +543,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('hotel-detail-content').innerHTML = `
             <button onclick="navigate('search')" class="mb-8 bg-gray-200 text-gray-800 px-4 py-2 rounded-full font-semibold hover:bg-gray-300">&larr; Kembali ke Pencarian</button>
             <div class="bg-white rounded-2xl shadow-lg p-8">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                    <div>
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-12">
+                    <div class="lg:col-span-3">
                         <!-- Galeri Foto -->
                         <div class="mb-4">
                             <img src="${gallery[0]}" class="w-full h-72 object-cover rounded-xl mb-2 shadow" alt="Foto utama hotel">
@@ -539,9 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 ${gallery.slice(1,5).map(img => `<img src="${img}" class="w-20 h-14 object-cover rounded shadow">`).join('')}
                             </div>
                         </div>
-                    </div>
-                    <div>
-                        <!-- Info Utama -->
+                        <!-- Deskripsi -->
                         <h1 class="text-4xl font-bold text-brand-black mb-2">${hotel.name}</h1>
                         <div class="flex items-center gap-3 mb-2">${starHTML}</div>
                         <div class="flex flex-col items-start mb-4">
@@ -549,7 +560,22 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="text-3xl font-bold text-brand-green leading-tight">${minRoomPrice ? formatCurrency(minRoomPrice) : '-'}</span>
                             <span class="text-xs text-brand-grey font-normal">/ malam</span>
                         </div>
-                        <div class="text-gray-600 mb-2">${hotel.location || '-'}</div>
+                        <div class="mb-2"><h3 class="font-semibold mb-1">Fasilitas</h3>${fasilitasHTML}</div>
+                        <div class="mt-8">
+                            <h3 class="font-semibold mb-2">Deskripsi</h3>
+                            <div class="mb-4 text-gray-700">${hotel.description || '-'}</div>
+                        </div>
+                        <div class="mt-8">
+                            <h3 class="font-semibold mb-2">Tipe Kamar</h3>
+                            ${roomTypesHTML}
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 flex flex-col gap-6">
+                        <div>
+                            <h3 class="font-semibold mb-2">Alamat</h3>
+                            <div class="mb-2 text-gray-700">${hotel.location || '-'}</div>
+                        </div>
+                        <div id="hotel-map" class="w-full h-64 rounded-xl border"></div>
                         <!-- Ulasan -->
                         <div class="flex items-center gap-2 mb-2">
                             <span class="text-lg font-bold text-brand-black">${avgRating}</span>
@@ -558,24 +584,76 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="text-gray-500">(${reviewCount} ulasan)</span>
                             <button class="text-brand-green underline ml-2" onclick="showAllReviews(${hotel.id})">Lihat semua ulasan</button>
                         </div>
-                        <!-- Fasilitas -->
-                        <div class="mb-2"><h3 class="font-semibold mb-1">Fasilitas</h3>${fasilitasHTML}</div>
                     </div>
-                </div>
-                <!-- Deskripsi & Alamat -->
-                <div class="mt-8">
-                    <h3 class="font-semibold mb-2">Deskripsi</h3>
-                    <div class="mb-4 text-gray-700">${hotel.description || '-'}</div>
-                    <h3 class="font-semibold mb-2">Alamat</h3>
-                    <div class="mb-4 text-gray-700">${hotel.location || '-'}</div>
-                </div>
-                <!-- Tipe Kamar -->
-                <div class="mt-8">
-                    <h3 class="font-semibold mb-2">Tipe Kamar</h3>
-                    ${roomTypesHTML}
                 </div>
             </div>
         `;
+        // Setelah render konten detail hotel
+        if (hotel.latitude && hotel.longitude && document.getElementById('hotel-map')) {
+            try {
+                // Pastikan elemen map ada dan kosong
+                const mapElement = document.getElementById('hotel-map');
+                if (mapElement) {
+                    // Bersihkan konten map terlebih dahulu
+                    mapElement.innerHTML = '';
+                    
+                    // Hapus instance map lama jika ada
+                    if (window.currentMap) {
+                        window.currentMap.remove();
+                    }
+                    
+                    // Inisialisasi peta Leaflet dengan konfigurasi yang lebih baik
+                    const map = L.map('hotel-map', {
+                        zoomControl: true,
+                        scrollWheelZoom: false,
+                        doubleClickZoom: false,
+                        boxZoom: false,
+                        keyboard: false,
+                        dragging: true,
+                        touchZoom: true
+                    }).setView([parseFloat(hotel.latitude), parseFloat(hotel.longitude)], 15);
+                    
+                    // Simpan referensi map untuk cleanup nanti
+                    window.currentMap = map;
+                    
+                    // Tambahkan tile layer dengan konfigurasi yang lebih stabil
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                        maxZoom: 18,
+                        minZoom: 3
+                    }).addTo(map);
+                    
+                    // Tambahkan marker dengan styling yang lebih baik
+                    const marker = L.marker([parseFloat(hotel.latitude), parseFloat(hotel.longitude)], {
+                        title: hotel.name
+                    }).addTo(map);
+                    
+                    // Bind popup dengan styling yang lebih baik
+                    marker.bindPopup(`<b>${hotel.name}</b>`, {
+                        closeButton: true,
+                        autoClose: false
+                    }).openPopup();
+                    
+                    // Trigger resize event untuk memastikan map render dengan benar
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('Error initializing map:', error);
+                // Tampilkan pesan error atau fallback
+                const mapElement = document.getElementById('hotel-map');
+                if (mapElement) {
+                    mapElement.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500">Peta tidak dapat dimuat</div>';
+                }
+            }
+        } else {
+            // Jika tidak ada koordinat, tampilkan pesan
+            const mapElement = document.getElementById('hotel-map');
+            if (mapElement) {
+                mapElement.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500">Lokasi tidak tersedia</div>';
+            }
+        }
     }
 
     function renderAuthForms() {

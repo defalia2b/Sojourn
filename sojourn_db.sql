@@ -267,4 +267,29 @@ INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_ga
 
 ALTER TABLE `bookings` ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'confirmed' AFTER `total_price`; 
 
-ALTER TABLE bookings ADD COLUMN status ENUM('confirmed', 'cancelled', 'finished') NOT NULL DEFAULT 'confirmed' AFTER total_price;
+ALTER TABLE `hotels`
+ADD COLUMN `latitude` DECIMAL(10, 8) NULL,
+ADD COLUMN `longitude` DECIMAL(11, 8) NULL;
+
+-- Mengisi data koordinat untuk hotel yang ada
+
+-- Hotel di Jakarta (ID: 1, 4, 5)
+UPDATE `hotels` 
+SET 
+    `latitude` = -6.2088, -- Latitude untuk Jakarta
+    `longitude` = 106.8456 -- Longitude untuk Jakarta
+WHERE `id` IN (1, 4, 5);
+
+-- Hotel di Bandung (ID: 2)
+UPDATE `hotels` 
+SET 
+    `latitude` = -6.9175, -- Latitude untuk Bandung
+    `longitude` = 107.6191 -- Longitude untuk Bandung
+WHERE `id` = 2;
+
+-- Hotel di Bali (ID: 3)
+UPDATE `hotels` 
+SET 
+    `latitude` = -8.7193, -- Latitude untuk area Kuta, Bali
+    `longitude` = 115.1685 -- Longitude untuk area Kuta, Bali
+WHERE `id` = 3;
