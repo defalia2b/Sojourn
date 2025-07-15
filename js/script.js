@@ -464,19 +464,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // Fasilitas
         const fasilitasHTML = hotel.facilities.map(f => `<span class='bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full mr-1 mb-1 inline-block'>${f.name}</span>`).join('');
-        // Tipe kamar
-        const roomTypesHTML = hotel.room_types && hotel.room_types.length > 0 ? hotel.room_types.map(rt => `
-            <div class='border rounded-xl p-4 flex flex-col md:flex-row gap-4 mb-4 bg-white'>
-                <div class='flex-1'>
-                    <div class='flex gap-2 mb-2'>
-                        ${(rt.image_gallery ? rt.image_gallery.split(',').slice(0,2).map(img => `<img src='${img.trim()}' class='w-24 h-16 object-cover rounded-lg'>`).join('') : '')}
-                    </div>
-                    <div class='font-bold text-lg mb-1'>${rt.name}</div>
-                    <div class='text-brand-green font-semibold mb-1'>${formatCurrency(rt.price)}</div>
-                    <div class='text-xs text-gray-500 mb-1'>Tersedia: ${rt.availability}</div>
+        // Tipe kamar - Modern Card Grid
+        let roomTypes = hotel.room_types ? [...hotel.room_types] : [];
+        // Pisahkan yang sold out
+        const availableRooms = roomTypes.filter(rt => parseInt(rt.availability) > 0);
+        const soldOutRooms = roomTypes.filter(rt => parseInt(rt.availability) === 0);
+        // Gabungkan, yang sold out di belakang
+        const sortedRooms = [...availableRooms, ...soldOutRooms];
+        const roomTypesHTML = sortedRooms.length > 0 ?
+            `<div class='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>` +
+            sortedRooms.map(rt => {
+                const isSoldOut = parseInt(rt.availability) === 0;
+                const images = rt.image_gallery ? rt.image_gallery.split(',').slice(0, 1).map(img => `<img src='${img.trim()}' class='w-28 h-20 object-cover rounded-lg mx-auto mb-2'>`).join('') : '';
+                return `
+                <div class='bg-white border rounded-2xl shadow-md p-4 flex flex-col items-center relative ${isSoldOut ? 'opacity-60' : 'hover:shadow-xl transition-shadow duration-300'}'>
+                    ${images || `<div class='w-28 h-20 bg-gray-200 rounded-lg flex items-center justify-center mb-2 text-gray-400'>No Image</div>`}
+                    <div class='font-bold text-lg text-center mb-1'>${rt.name}</div>
+                    <div class='text-brand-green font-semibold mb-1 text-center'>${formatCurrency(rt.price)}</div>
+                    <div class='text-xs text-gray-500 mb-2 text-center'>Tersedia: ${rt.availability}</div>
+                    <button class='w-full py-2 rounded-lg font-semibold mt-2 ${isSoldOut ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-brand-green text-white hover:bg-green-700'}' ${isSoldOut ? 'disabled' : `onclick=\"navigate('booking', {hotelId: ${hotel.id}, roomTypeId: ${rt.id}})\"`}>${isSoldOut ? 'Sold Out' : 'Pesan'}</button>
                 </div>
-            </div>
-        `).join('') : '<div class="text-gray-400">Tidak ada tipe kamar tersedia.</div>';
+                `;
+            }).join('') + `</div>`
+            : '<div class="text-gray-400">Tidak ada tipe kamar tersedia.</div>';
         // Ulasan
         function capitalize(str) {
             if (!str) return '';
@@ -545,15 +555,27 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('register-form').addEventListener('submit', handleRegister);
     }
 
-    function showBookingForm(hotelId) {
+    function showBookingForm(navigateData) {
+        // Mendukung pemanggilan: showBookingForm(hotelId) atau showBookingForm({hotelId, roomTypeId})
+        let hotelId, roomTypeId;
+        if (typeof navigateData === 'object' && navigateData !== null) {
+            hotelId = navigateData.hotelId || navigateData.hotel_id || navigateData;
+            roomTypeId = navigateData.roomTypeId || navigateData.room_type_id;
+        } else {
+            hotelId = navigateData;
+        }
         if (!currentUser) {
             alert('Anda harus login terlebih dahulu untuk memesan hotel.');
             navigate('login');
             return;
         }
         const hotel = allHotels.find(h => h.id == hotelId);
+        let selectedRoom = null;
+        if (roomTypeId && hotel && hotel.room_types) {
+            selectedRoom = hotel.room_types.find(rt => rt.id == roomTypeId);
+        }
         let totalNights = 1;
-        let totalPrice = hotel.price * 1.1;
+        let totalPrice = (selectedRoom ? selectedRoom.price : hotel.price) * 1.1;
         document.getElementById('booking-form-content').innerHTML = `
             <div class="lg:col-span-2">
                 <h3 class="text-2xl font-bold text-brand-black mb-6">Isi Data Pemesanan</h3>
@@ -571,12 +593,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="lg:col-span-1">
                 <h3 class="text-2xl font-bold text-brand-black mb-6">Ringkasan Pesanan</h3>
                 <div class="bg-white p-6 rounded-2xl shadow-lg">
-                    <img src="${hotel.image}" class="w-full h-40 object-cover rounded-lg mb-4">
+                    <img src="${selectedRoom && selectedRoom.image_gallery ? selectedRoom.image_gallery.split(',')[0].trim() : hotel.image}" class="w-full h-40 object-cover rounded-lg mb-4">
                     <h4 class="text-xl font-bold">${hotel.name}</h4>
                     <p class="text-brand-grey">${hotel.location}</p>
+                    ${selectedRoom ? `<div class='mt-2 mb-2'><span class='font-semibold'>Tipe Kamar:</span> ${selectedRoom.name}</div>` : ''}
                     <div class="border-t my-4"></div>
-                    <div class="flex justify-between"><p>Harga per malam</p><p class="font-semibold" id="harga-per-malam">${formatCurrency(hotel.price)}</p></div>
-                    <div class="flex justify-between mt-2"><p>Pajak & Layanan (10%)</p><p class="font-semibold" id="pajak">${formatCurrency(hotel.price * 0.1)}</p></div>
+                    <div class="flex justify-between"><p>Harga per malam</p><p class="font-semibold" id="harga-per-malam">${formatCurrency(selectedRoom ? selectedRoom.price : hotel.price)}</p></div>
+                    <div class="flex justify-between mt-2"><p>Pajak & Layanan (10%)</p><p class="font-semibold" id="pajak">${formatCurrency((selectedRoom ? selectedRoom.price : hotel.price) * 0.1)}</p></div>
                     <div class="flex justify-between mt-2"><p>Jumlah Malam</p><p class="font-semibold" id="jumlah-malam">${totalNights}</p></div>
                     <div class="border-t my-4"></div>
                     <div class="flex justify-between text-xl font-bold"><p>Total</p><p id="total-harga">${formatCurrency(totalPrice)}</p></div>
@@ -597,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (nights < 1) nights = 1;
             }
             totalNights = nights;
-            totalPrice = hotel.price * totalNights * 1.1;
+            totalPrice = (selectedRoom ? selectedRoom.price : hotel.price) * totalNights * 1.1;
             document.getElementById('jumlah-malam').textContent = totalNights;
             document.getElementById('total-harga').textContent = formatCurrency(totalPrice);
         }

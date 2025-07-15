@@ -229,3 +229,37 @@ INSERT INTO `reviews` (`hotel_id`, `user_id`, `rating`, `comment`, `created_at`)
 -- Ulasan tanpa komentar
 (2, 3, 6, NULL, '2024-05-30 11:00:00'),
 (4, 2, 10, NULL, '2024-07-08 17:00:00');
+
+
+-- Menambahkan data contoh untuk tabel room_types
+-- Semua tipe kamar akan menggunakan gambar 'img/hotel_room/1.png'
+
+-- Hotel 1
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(1, 'Kamar Standard', 500000.00, 10, 'img/hotel_room/1.png'),
+(1, 'Kamar Deluxe', 750000.00, 8, 'img/hotel_room/1.png'),
+(1, 'Suite Junior', 1200000.00, 5, 'img/hotel_room/1.png');
+
+-- Hotel 2
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(2, 'Kamar Twin', 650000.00, 12, 'img/hotel_room/1.png'),
+(2, 'Kamar King', 850000.00, 6, 'img/hotel_room/1.png'),
+(2, 'Suite Keluarga', 1500000.00, 4, 'img/hotel_room/1.png');
+
+-- Hotel 3
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(3, 'Kamar Superior', 800000.00, 15, 'img/hotel_room/1.png'),
+(3, 'Kamar Deluxe Pemandangan Kota', 1100000.00, 7, 'img/hotel_room/1.png'),
+(3, 'Suite Eksekutif', 1800000.00, 3, 'img/hotel_room/1.png');
+
+-- Hotel 4
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(4, 'Kamar Standard Queen', 550000.00, 20, 'img/hotel_room/1.png'),
+(4, 'Kamar Deluxe King', 900000.00, 10, 'img/hotel_room/1.png'),
+(4, 'Suite Presidential', 2500000.00, 2, 'img/hotel_room/1.png');
+
+-- Hotel 5
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(5, 'Kamar Single', 450000.00, 8, 'img/hotel_room/1.png'),
+(5, 'Kamar Double', 700000.00, 12, 'img/hotel_room/1.png'),
+(5, 'Kamar Keluarga', 1300000.00, 0, 'img/hotel_room/1.png');
