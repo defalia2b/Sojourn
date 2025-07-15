@@ -1,3 +1,36 @@
+// FUNGSI GLOBAL DI LUAR
+window.navigate = function(pageId, data = null) {
+    if (window.location.hash !== '#' + pageId) {
+        window.location.hash = '#' + pageId;
+    }
+    if (data !== null) {
+        window._navigateData = data;
+    } else {
+        window._navigateData = null;
+    }
+};
+
+window.handleLogout = function() {
+    const userName = currentUser?.name || '';
+    currentUser = null;
+    sessionStorage.removeItem('sojournUser');
+    alert(`Anda telah berhasil logout, ${userName}.`);
+    updateHeaderUI();
+    navigate('home');
+};
+
+window.switchAuthForm = function(formType) {
+    if (window.location.hash !== '#' + formType) {
+        window.location.hash = '#' + formType;
+    } else {
+        showPageBasedOnURL();
+    }
+    document.getElementById('login-form-container').classList.add('hidden');
+    document.getElementById('register-form-container').classList.add('hidden');
+    document.getElementById('forgot-form-container').classList.add('hidden');
+    document.getElementById(formType + '-form-container').classList.remove('hidden');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- App State ---
@@ -7,9 +40,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // const allHotels = [ ... ]; // DIHAPUS, digantikan dengan hasil fetch API
     let allHotels = [];
     const allFacilitiesOptions = ['Kolam Renang', 'WiFi Gratis', 'Parkir', 'Restoran', 'Spa', 'Pusat Kebugaran'];
+    let currentSort = '';
 
     // --- Helpers ---
     const formatCurrency = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+
+    function getRatingLabel(rating) {
+        if (rating >= 9) return 'Luar Biasa';
+        if (rating >= 8) return 'Sangat Baik';
+        if (rating >= 6.5) return 'Baik';
+        if (rating >= 5) return 'Cukup';
+        if (rating > 0) return 'Buruk';
+        return '-';
+    }
 
     // --- API Communication Functions ---
     async function fetchHotels() {
@@ -58,21 +101,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Navigation Logic & STATE ---
-    window.navigate = (pageId, data = null) => {
-        // Update the URL hash for client-side routing
-        if (window.location.hash !== '#' + pageId) {
-            window.location.hash = '#' + pageId;
-        }
-        // Optionally store data for detail/booking/confirmation
-        if (data !== null) {
-            window._navigateData = data;
-        } else {
-            window._navigateData = null;
-        }
-    };
+    // window.navigate = (pageId, data = null) => { // HAPUS deklarasi ini dari dalam blok
+    //     // Update the URL hash for client-side routing
+    //     if (window.location.hash !== '#' + pageId) {
+    //         window.location.hash = '#' + pageId;
+    //     }
+    //     // Optionally store data for detail/booking/confirmation
+    //     if (data !== null) {
+    //         window._navigateData = data;
+    //     } else {
+    //         window._navigateData = null;
+    //     }
+    // };
 
     // --- Client-side Routing: Show Page Based on URL Hash ---
     function showPageBasedOnURL() {
+        // Jika data hotel belum siap, jangan render page lain dulu
+        if (!allHotels || allHotels.length === 0) {
+            document.querySelectorAll('.page-content').forEach(page => page.classList.add('hidden'));
+            // Optional: tampilkan pesan loading di salah satu div jika mau
+            return;
+        }
         const hash = window.location.hash || '#home';
         const pageId = hash.replace('#', '');
         // Hide all pages
@@ -98,15 +147,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showBookingForm(window._navigateData);
         } else if (pageId === 'confirmation') {
             renderConfirmation(window._navigateData);
-        } 
-        // Special handling for login/register/forgot forms
-        if (pageId === 'login' || pageId === 'register' || pageId === 'forgot') {
-            renderAuthForms();
-            // Show the correct form
-            document.getElementById('login-form-container').classList.add('hidden');
-            document.getElementById('register-form-container').classList.add('hidden');
-            document.getElementById('forgot-form-container').classList.add('hidden');
-            document.getElementById(pageId + '-form-container').classList.remove('hidden');
+        } else if (pageId === 'team') {
+            // Tidak perlu render khusus, cukup tampilkan section
+            // Jangan navigate('home') di sini
+        } else {
+            // Jangan navigate('home') otomatis!
+            // Biarkan hash tetap, tampilkan page kosong jika id tidak dikenali
         }
         // Show the page div
         const pageDiv = document.getElementById(pageId + '-page');
@@ -177,32 +223,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.handleLogout = () => {
-        const userName = currentUser.name;
-        currentUser = null;
-        sessionStorage.removeItem('sojournUser');
-        alert(`Anda telah berhasil logout, ${userName}.`);
-        updateHeaderUI();
-        navigate('home');
-    };
-
-    window.switchAuthForm = (formType) => {
-        // Update hash to reflect the form type
-        if (window.location.hash !== '#' + formType) {
-            window.location.hash = '#' + formType;
-        } else {
-            // If hash is already correct, force update the UI
-            showPageBasedOnURL();
-        }
-        document.getElementById('login-form-container').classList.add('hidden');
-        document.getElementById('register-form-container').classList.add('hidden');
-        document.getElementById('forgot-form-container').classList.add('hidden');
-        document.getElementById(formType + '-form-container').classList.remove('hidden');
-    };
-    
     // --- Content Render Funciton ---
     
     function renderHotelCard(hotel) {
+        // Fasilitas utama (maks 3), sisanya +n
+        const maxShow = 3;
+        const fasilitas = hotel.facilities || [];
+        const shown = fasilitas.slice(0, maxShow);
+        const moreCount = fasilitas.length - maxShow;
+        let fasilitasHTML = shown.map(f => `<span class='bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full mr-1'>${f}</span>`).join('');
+        if (moreCount > 0) {
+            fasilitasHTML += `<span class='bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full cursor-pointer relative more-facilities-tag' title='${fasilitas.slice(maxShow).join(', ')}'>+${moreCount}</span>`;
+        }
         return `
             <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer" onclick="navigate('detail', ${hotel.id})">
                 <img src="${hotel.image}" class="w-full h-56 object-cover" alt="Gambar ${hotel.name}">
@@ -216,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="font-bold text-brand-black">${hotel.rating}</span>
                         </div>
                     </div>
+                    <div class="flex flex-wrap gap-1 mt-3">${fasilitasHTML}</div>
                 </div>
             </div>
         `;
@@ -223,6 +256,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderSearchBar(containerId, initialQuery = '') {
         const container = document.getElementById(containerId);
+        container.classList.add('search-bar-card'); // Tambahkan class card modern
+        // State untuk tamu
+        let guestState = {
+            dewasa: 2,
+            anak: 0,
+            kamar: 1
+        };
+        function getGuestLabel() {
+            return `${guestState.dewasa} Dewasa, ${guestState.anak} Anak, ${guestState.kamar} Kamar`;
+        }
         container.innerHTML = `
             <div class="search-bar-grid">
                 <div class="search-field">
@@ -237,16 +280,125 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label>Check-out</label>
                     <input type="date" class="form-input-date">
                 </div>
-                <div class="search-field">
+                <div class="search-field" style="position:relative;">
                     <label>Tamu</label>
-                    <input type="text" value="2 tamu, 1 kamar">
+                    <button type="button" id="${containerId}-guests-label" class="form-input text-left w-full flex items-center justify-between" style="cursor:pointer;">
+                        <span id="${containerId}-guests-label-text">${getGuestLabel()}</span>
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="${containerId}-guests-dropdown" class="guests-dropdown" style="display:none;position:absolute;z-index:20;left:0;top:100%;background:#fff;border:1px solid #E5E7EB;border-radius:0.75rem;box-shadow:0 4px 24px 0 rgba(36,171,112,0.08),0 1.5px 6px 0 rgba(0,0,0,0.04);padding:1rem;width:260px;min-width:220px;">
+                        <div class="flex items-center justify-between mb-2">
+                            <span>Dewasa</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="${containerId}-dewasa-minus" class="guest-btn">-</button>
+                                <input type="number" id="${containerId}-dewasa" min="1" max="10" value="2" class="guest-input">
+                                <button type="button" id="${containerId}-dewasa-plus" class="guest-btn">+</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span>Anak</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="${containerId}-anak-minus" class="guest-btn">-</button>
+                                <input type="number" id="${containerId}-anak" min="0" max="10" value="0" class="guest-input">
+                                <button type="button" id="${containerId}-anak-plus" class="guest-btn">+</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Kamar</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="${containerId}-kamar-minus" class="guest-btn">-</button>
+                                <input type="number" id="${containerId}-kamar" min="1" max="10" value="1" class="guest-input">
+                                <button type="button" id="${containerId}-kamar-plus" class="guest-btn">+</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <button id="${containerId}-button" class="search-button-main">Cari</button>
         `;
+        // Dropdown logic
+        const labelBtn = document.getElementById(`${containerId}-guests-label`);
+        const dropdown = document.getElementById(`${containerId}-guests-dropdown`);
+        const labelText = document.getElementById(`${containerId}-guests-label-text`);
+        labelBtn.onclick = (e) => {
+            e.stopPropagation();
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        };
+        function closeDropdown(e) {
+            if (!dropdown.contains(e.target) && e.target !== labelBtn) {
+                dropdown.style.display = 'none';
+            }
+        }
+        document.addEventListener('mousedown', closeDropdown);
+        // Dewasa
+        const dewasaInput = document.getElementById(`${containerId}-dewasa`);
+        document.getElementById(`${containerId}-dewasa-minus`).onclick = () => {
+            if (guestState.dewasa > 1) guestState.dewasa--;
+            dewasaInput.value = guestState.dewasa;
+            labelText.textContent = getGuestLabel();
+        };
+        document.getElementById(`${containerId}-dewasa-plus`).onclick = () => {
+            if (guestState.dewasa < 10) guestState.dewasa++;
+            dewasaInput.value = guestState.dewasa;
+            labelText.textContent = getGuestLabel();
+        };
+        dewasaInput.oninput = () => {
+            let val = parseInt(dewasaInput.value) || 1;
+            if (val < 1) val = 1;
+            if (val > 10) val = 10;
+            guestState.dewasa = val;
+            dewasaInput.value = val;
+            labelText.textContent = getGuestLabel();
+        };
+        // Anak
+        const anakInput = document.getElementById(`${containerId}-anak`);
+        document.getElementById(`${containerId}-anak-minus`).onclick = () => {
+            if (guestState.anak > 0) guestState.anak--;
+            anakInput.value = guestState.anak;
+            labelText.textContent = getGuestLabel();
+        };
+        document.getElementById(`${containerId}-anak-plus`).onclick = () => {
+            if (guestState.anak < 10) guestState.anak++;
+            anakInput.value = guestState.anak;
+            labelText.textContent = getGuestLabel();
+        };
+        anakInput.oninput = () => {
+            let val = parseInt(anakInput.value) || 0;
+            if (val < 0) val = 0;
+            if (val > 10) val = 10;
+            guestState.anak = val;
+            anakInput.value = val;
+            labelText.textContent = getGuestLabel();
+        };
+        // Kamar
+        const kamarInput = document.getElementById(`${containerId}-kamar`);
+        document.getElementById(`${containerId}-kamar-minus`).onclick = () => {
+            if (guestState.kamar > 1) guestState.kamar--;
+            kamarInput.value = guestState.kamar;
+            labelText.textContent = getGuestLabel();
+        };
+        document.getElementById(`${containerId}-kamar-plus`).onclick = () => {
+            if (guestState.kamar < 10) guestState.kamar++;
+            kamarInput.value = guestState.kamar;
+            labelText.textContent = getGuestLabel();
+        };
+        kamarInput.oninput = () => {
+            let val = parseInt(kamarInput.value) || 1;
+            if (val < 1) val = 1;
+            if (val > 10) val = 10;
+            guestState.kamar = val;
+            kamarInput.value = val;
+            labelText.textContent = getGuestLabel();
+        };
+        // Bersihkan event saat container dihapus
+        container._cleanupGuestDropdown = () => {
+            document.removeEventListener('mousedown', closeDropdown);
+        };
+        // Tombol cari
         document.getElementById(`${containerId}-button`).onclick = () => {
             const query = document.getElementById(`${containerId}-location`).value;
-            navigate('search', { query });
+            // Kirim data guestState jika ingin filter berdasarkan tamu
+            navigate('search', { query, guests: { ...guestState } });
         };
     }
 
@@ -257,28 +409,99 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSearchResultsPage(data = {}) {
         const query = data.query || '';
-        renderSearchBar('search-page-bar', query);
+        // Tambahkan wrapper container agar lebar search bar konsisten seperti di home
+        const searchPageBar = document.getElementById('search-page-bar');
+        searchPageBar.innerHTML = '<div class="container mx-auto px-4"><div id="search-page-bar-inner" class="bg-white p-6 rounded-2xl shadow-xl"></div></div>';
+        renderSearchBar('search-page-bar-inner', query);
+        setupFilters(); // Pindahkan ke sini
         applyFilters();
     }
     
-    function renderHotelDetails(hotelId) {
-        const hotel = allHotels.find(h => h.id == hotelId); // gunakan == agar string/number cocok
-        if (!hotel) { navigate('home'); return; }
+    async function renderHotelDetails(hotelId) {
+        // Ambil detail hotel dari API detail
+        const response = await fetch(`api_get_hotel_detail.php?hotel_id=${hotelId}`);
+        const data = await response.json();
+        if (!data.success) { navigate('home'); return; }
+        const hotel = data.hotel;
+        // Galeri foto: ambil dari image_gallery semua tipe kamar, fallback ke hotel.image
+        let gallery = [];
+        if (hotel.room_types && hotel.room_types.length > 0) {
+            hotel.room_types.forEach(rt => {
+                if (rt.image_gallery) {
+                    gallery = gallery.concat(rt.image_gallery.split(',').map(img => img.trim()).filter(Boolean));
+                }
+            });
+        }
+        if (gallery.length === 0 && hotel.image) gallery = [hotel.image];
+        // Harga mulai
+        let minRoomPrice = null;
+        if (hotel.room_types && hotel.room_types.length > 0) {
+            minRoomPrice = Math.min(...hotel.room_types.map(rt => parseFloat(rt.price)));
+        }
+        // Fasilitas
+        const fasilitasHTML = hotel.facilities.map(f => `<span class='bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full mr-1 mb-1 inline-block'>${f.name}</span>`).join('');
+        // Tipe kamar
+        const roomTypesHTML = hotel.room_types && hotel.room_types.length > 0 ? hotel.room_types.map(rt => `
+            <div class='border rounded-xl p-4 flex flex-col md:flex-row gap-4 mb-4 bg-white'>
+                <div class='flex-1'>
+                    <div class='flex gap-2 mb-2'>
+                        ${(rt.image_gallery ? rt.image_gallery.split(',').slice(0,2).map(img => `<img src='${img.trim()}' class='w-24 h-16 object-cover rounded-lg'>`).join('') : '')}
+                    </div>
+                    <div class='font-bold text-lg mb-1'>${rt.name}</div>
+                    <div class='text-brand-green font-semibold mb-1'>${formatCurrency(rt.price)}</div>
+                    <div class='text-xs text-gray-500 mb-1'>Tersedia: ${rt.availability}</div>
+                </div>
+            </div>
+        `).join('') : '<div class="text-gray-400">Tidak ada tipe kamar tersedia.</div>';
+        // Ulasan
+        const avgRating = hotel.avg_review_rating ? parseFloat(hotel.avg_review_rating).toFixed(1) : '-';
+        const reviewCount = hotel.review_count || 0;
+        const ratingLabel = hotel.avg_review_rating ? getRatingLabel(hotel.avg_review_rating) : '-';
+        // Star rating
+        const starHTML = `<span class='text-yellow-500'>${'★'.repeat(hotel.star_rating)}${'☆'.repeat(5-hotel.star_rating)}</span>`;
+        // Render
         document.getElementById('hotel-detail-content').innerHTML = `
             <button onclick="navigate('search')" class="mb-8 bg-gray-200 text-gray-800 px-4 py-2 rounded-full font-semibold hover:bg-gray-300">&larr; Kembali ke Pencarian</button>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <div><img src="${hotel.image}" alt="${hotel.name}" class="w-full h-auto object-cover rounded-2xl shadow-lg"></div>
-                <div>
-                    <h1 class="text-4xl font-bold text-brand-black">${hotel.name}</h1>
-                    <p class="text-lg text-brand-grey mt-2">${hotel.location}</p>
-                    <div class="flex items-center gap-2 text-yellow-500 mt-4"><svg class="w-6 h-6 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg><span class="text-2xl font-bold text-brand-black">${hotel.rating}</span></div>
-                    <p class="text-brand-grey mt-6 leading-relaxed">${hotel.description}</p>
-                    <h3 class="text-xl font-bold text-brand-black mt-6 mb-3">Fasilitas Unggulan</h3>
-                    <div class="flex flex-wrap gap-3">${hotel.facilities ? hotel.facilities.map(f => `<span class="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">${f}</span>`).join('') : ''}</div>
-                    <div class="mt-8 bg-gray-100 p-6 rounded-lg">
-                        <p class="text-3xl font-bold text-brand-green">${formatCurrency(hotel.price)}<span class="text-lg font-normal text-brand-grey"> / malam</span></p>
-                        <button onclick="navigate('booking', ${hotel.id})" class="mt-4 w-full bg-brand-green text-white py-4 rounded-lg font-bold text-lg hover:bg-opacity-90">Pesan Sekarang</button>
+            <div class="bg-white rounded-2xl shadow-lg p-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    <div>
+                        <!-- Galeri Foto -->
+                        <div class="mb-4">
+                            <img src="${gallery[0]}" class="w-full h-72 object-cover rounded-xl mb-2 shadow" alt="Foto utama hotel">
+                            <div class="flex gap-2">
+                                ${gallery.slice(1,5).map(img => `<img src="${img}" class="w-20 h-14 object-cover rounded shadow">`).join('')}
+                            </div>
+                        </div>
                     </div>
+                    <div>
+                        <!-- Info Utama -->
+                        <h1 class="text-4xl font-bold text-brand-black mb-2">${hotel.name}</h1>
+                        <div class="flex items-center gap-3 mb-2">${starHTML} <span class="text-gray-500">(${hotel.star_rating} bintang)</span></div>
+                        <div class="text-brand-green text-2xl font-bold mb-2">${minRoomPrice ? formatCurrency(minRoomPrice) : '-'} <span class="text-base font-normal text-brand-grey">/ malam</span></div>
+                        <div class="text-gray-600 mb-2">${hotel.location || '-'}</div>
+                        <!-- Ulasan -->
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-lg font-bold text-brand-black">${avgRating}</span>
+                            <span class="text-gray-500">/ 10</span>
+                            <span class="text-xs text-brand-green font-semibold ml-1">${ratingLabel}</span>
+                            <span class="text-gray-500">(${reviewCount} ulasan)</span>
+                            <button class="text-brand-green underline ml-2" onclick="showAllReviews(${hotel.id})">Lihat semua ulasan</button>
+                        </div>
+                        <!-- Fasilitas -->
+                        <div class="mb-2"><h3 class="font-semibold mb-1">Fasilitas</h3>${fasilitasHTML}</div>
+                    </div>
+                </div>
+                <!-- Deskripsi & Alamat -->
+                <div class="mt-8">
+                    <h3 class="font-semibold mb-2">Deskripsi</h3>
+                    <div class="mb-4 text-gray-700">${hotel.description || '-'}</div>
+                    <h3 class="font-semibold mb-2">Alamat</h3>
+                    <div class="mb-4 text-gray-700">${hotel.location || '-'}</div>
+                </div>
+                <!-- Tipe Kamar -->
+                <div class="mt-8">
+                    <h3 class="font-semibold mb-2">Tipe Kamar</h3>
+                    ${roomTypesHTML}
                 </div>
             </div>
         `;
@@ -415,29 +638,91 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    function renderSortDropdown() {
+        const container = document.getElementById('sort-dropdown-container');
+        container.innerHTML = `
+            <label class="font-semibold mr-2">Urutkan:</label>
+            <select id="sort-dropdown" class="form-input">
+                <option value="">Default</option>
+                <option value="price_desc">Harga Tertinggi</option>
+                <option value="price_asc">Harga Terendah</option>
+                <option value="popularity">Popularitas</option>
+                <option value="rating_desc">Rating Pengguna</option>
+            </select>
+        `;
+        document.getElementById('sort-dropdown').value = currentSort;
+        document.getElementById('sort-dropdown').addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            applyFilters();
+        });
+    }
+
     function applyFilters() {
         const query = (document.getElementById('search-page-bar-location')?.value || '').toLowerCase();
-        const price = parseInt(document.getElementById('price-range-slider').value);
+        const priceMin = parseInt(document.getElementById('price-min-input').value) || 0;
+        const priceMax = parseInt(document.getElementById('price-max-input').value) || 100000000;
         const checkedStars = [...document.querySelectorAll('#star-filter-options input:checked')].map(el => parseInt(el.value));
         const checkedFacilities = [...document.querySelectorAll('#facility-filter-options input:checked')].map(el => el.value);
         
-        const filteredHotels = allHotels.filter(hotel => {
+        let filteredHotels = allHotels.filter(hotel => {
             const queryMatch = !query || hotel.location.toLowerCase().includes(query) || hotel.name.toLowerCase().includes(query);
-            const priceMatch = hotel.price <= price;
-            const starMatch = checkedStars.length === 0 || checkedStars.includes(Math.floor(hotel.rating));
+            const priceMatch = hotel.price >= priceMin && hotel.price <= priceMax;
+            const starMatch = checkedStars.length === 0 || checkedStars.includes(hotel.star_rating); // pastikan pakai star_rating
             const facilityMatch = checkedFacilities.length === 0 || checkedFacilities.every(fac => hotel.facilities.includes(fac));
             return queryMatch && priceMatch && starMatch && facilityMatch;
         });
+
+        // Sorting
+        if (currentSort === 'price_asc') {
+            filteredHotels.sort((a, b) => a.price - b.price);
+        } else if (currentSort === 'price_desc') {
+            filteredHotels.sort((a, b) => b.price - a.price);
+        } else if (currentSort === 'popularity') {
+            filteredHotels.sort((a, b) => (b.review_count || 0) - (a.review_count || 0));
+        } else if (currentSort === 'rating_desc') {
+            filteredHotels.sort((a, b) => (b.avg_review_rating || 0) - (a.avg_review_rating || 0));
+        }
 
         document.getElementById('search-results-list').innerHTML = filteredHotels.length > 0 ? filteredHotels.map(renderHotelCard).join('') : `<p class="text-center text-brand-grey col-span-full">Tidak ada hotel yang cocok dengan kriteria Anda.</p>`;
         document.getElementById('search-results-count').textContent = `Menemukan ${filteredHotels.length} hotel`;
     }
 
     function setupFilters() {
+        // Harga min/maks dari data hotel
+        const prices = allHotels.map(h => h.price);
+        const minPrice = Math.min(...prices, 0);
+        const maxPrice = 20000000;
         const priceSlider = document.getElementById('price-range-slider');
-        const priceMaxDisplay = document.getElementById('price-max-display');
-        priceMaxDisplay.textContent = formatCurrency(priceSlider.value);
-        priceSlider.addEventListener('input', (e) => { priceMaxDisplay.textContent = formatCurrency(e.target.value); applyFilters(); });
+        const priceMinInput = document.getElementById('price-min-input');
+        const priceMaxInput = document.getElementById('price-max-input');
+        const priceMinLabel = document.getElementById('price-min-label');
+        const priceMaxLabel = document.getElementById('price-max-label');
+        // Set default value
+        priceSlider.min = minPrice;
+        priceSlider.max = maxPrice;
+        priceSlider.value = maxPrice;
+        priceMinInput.value = minPrice;
+        priceMaxInput.value = maxPrice;
+        priceMinLabel.textContent = formatCurrency(minPrice);
+        priceMaxLabel.textContent = formatCurrency(maxPrice) + '+';
+        // Sinkronisasi slider dan input manual
+        priceSlider.addEventListener('input', (e) => {
+            priceMaxInput.value = e.target.value;
+            applyFilters();
+        });
+        priceMinInput.addEventListener('input', (e) => {
+            if (parseInt(e.target.value) > parseInt(priceMaxInput.value)) {
+                priceMinInput.value = priceMaxInput.value;
+            }
+            applyFilters();
+        });
+        priceMaxInput.addEventListener('input', (e) => {
+            if (parseInt(e.target.value) < parseInt(priceMinInput.value)) {
+                priceMaxInput.value = priceMinInput.value;
+            }
+            priceSlider.value = priceMaxInput.value;
+            applyFilters();
+        });
         
         const starContainer = document.getElementById('star-filter-options');
         starContainer.innerHTML = [5, 4, 3, 2, 1].map(star => `<label class="flex items-center"><input type="checkbox" value="${star}" class="h-5 w-5 rounded border-gray-300 text-brand-green"><span class="ml-3 text-brand-grey">${star} Bintang</span></label>`).join('');
@@ -446,6 +731,48 @@ document.addEventListener('DOMContentLoaded', () => {
         const facilityContainer = document.getElementById('facility-filter-options');
         facilityContainer.innerHTML = allFacilitiesOptions.map(f => `<label class="flex items-center"><input type="checkbox" value="${f}" class="h-5 w-5 rounded border-gray-300 text-brand-green"><span class="ml-3 text-brand-grey">${f}</span></label>`).join('');
         facilityContainer.addEventListener('change', applyFilters);
+        renderSortDropdown();
+    }
+
+    function showAllReviews(hotelId) {
+        // Buat modal overlay
+        let modal = document.getElementById('reviews-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'reviews-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50';
+            modal.innerHTML = `<div class='bg-white rounded-xl shadow-lg max-w-2xl w-full p-8 relative'>
+                <button id='close-reviews-modal' class='absolute top-2 right-2 text-gray-500 hover:text-red-500 text-2xl'>&times;</button>
+                <h2 class='text-2xl font-bold mb-4'>Semua Ulasan</h2>
+                <div id='reviews-list'>Memuat ulasan...</div>
+            </div>`;
+            document.body.appendChild(modal);
+            document.getElementById('close-reviews-modal').onclick = () => modal.remove();
+        } else {
+            modal.style.display = 'flex';
+        }
+        // Fetch reviews
+        fetch(`api_get_reviews.php?hotel_id=${hotelId}`)
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('reviews-list');
+                if (!data.success || !data.reviews || data.reviews.length === 0) {
+                    list.innerHTML = '<div class="text-gray-400">Belum ada ulasan untuk hotel ini.</div>';
+                    return;
+                }
+                list.innerHTML = data.reviews.map(r => `
+                    <div class='border-b py-3'>
+                        <div class='flex items-center gap-2 mb-1'>
+                            <span class='font-bold text-brand-black'>${r.user_name}</span>
+                            <span class='text-yellow-500'>${'★'.repeat(Math.round(r.rating/2))}${'☆'.repeat(5-Math.round(r.rating/2))}</span>
+                            <span class='text-xs text-gray-500'>${parseFloat(r.rating).toFixed(1)}/10</span>
+                            <span class='text-xs text-brand-green font-semibold ml-1'>${getRatingLabel(r.rating)}</span>
+                            <span class='text-xs text-gray-400 ml-2'>${new Date(r.created_at).toLocaleDateString('id-ID')}</span>
+                        </div>
+                        <div class='text-gray-700'>${r.comment || '-'}</div>
+                    </div>
+                `).join('');
+            });
     }
 
     // --- App Inisiation ---
@@ -456,11 +783,10 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser = JSON.parse(loggedInUser);
         }
         await fetchHotels(); // Ambil data hotel dari API
-        renderHomePage();
         renderAuthForms();
-        setupFilters();
         updateHeaderUI();
         showPageBasedOnURL(); // Show the correct page on load
+        // setupFilters(); // HAPUS dari sini
     }
 
     initApp(); // Run the app

@@ -192,3 +192,192 @@ body {
 #main-footer h3 {
     color: #34b47c !important;
 }
+
+/* ===============================
+   TEAM CARD SQUARE RESPONSIVE
+   =============================== */
+#team-page .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2rem;
+  justify-items: center;
+  align-items: center;
+  padding-bottom: 1rem;
+}
+#team-page .bg-white {
+  width: 180px;
+  height: 220px;
+  min-width: 180px;
+  min-height: 220px;
+  max-width: 180px;
+  max-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding: 0;
+}
+#team-page .bg-white img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  aspect-ratio: 1/1;
+  border-radius: 50%;
+  margin-top: 18px;
+  margin-bottom: 10px;
+  background: #e5e7eb;
+  display: block;
+}
+#team-page .bg-white h3 {
+  text-align: center;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  height: 48px;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+  word-break: break-word;
+  white-space: normal;
+  flex-shrink: 0;
+}
+#team-page .bg-white p {
+  text-align: center;
+  margin: 0;
+  padding: 0 8px;
+  font-size: 0.95rem;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#team-page .bg-white img:not([src]),
+#team-page .bg-white img[src=""] {
+  background: #e5e7eb;
+}
+@media (max-width: 768px) {
+  #team-page .grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+  #team-page .bg-white {
+    width: 140px;
+    height: 170px;
+    min-width: 140px;
+    min-height: 170px;
+    max-width: 140px;
+    max-height: 170px;
+  }
+  #team-page .bg-white img {
+    width: 48px;
+    height: 48px;
+    margin-top: 10px;
+    margin-bottom: 6px;
+  }
+  #team-page .bg-white h3 {
+    font-size: 0.95rem;
+    height: 36px;
+  }
+  #team-page .bg-white p {
+    font-size: 0.85rem;
+    height: 18px;
+  }
+}
+
+#home-page section.relative > .absolute.bg-black {
+  opacity: 0.45 !important;
+  z-index: 1;
+  pointer-events: none;
+}
+#home-page section.relative > img {
+  z-index: 0;
+  position: absolute;
+}
+#home-page section.relative > .relative.z-10 {
+  z-index: 2;
+  position: relative;
+}
+
+/* ===============================
+   SEARCH BAR CARD MODERN DESIGN
+   =============================== */
+.search-bar-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 24px 0 rgba(36, 171, 112, 0.08), 0 1.5px 6px 0 rgba(0,0,0,0.04);
+  border: 1.5px solid #E5E7EB;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.search-bar-card .search-field {
+  border-right: 1.5px solid #E5E7EB;
+  padding-right: 1.25rem;
+  margin-right: 1.25rem;
+  background: transparent;
+}
+
+.search-bar-card .search-field:last-child {
+  border-right: none;
+  padding-right: 0;
+  margin-right: 0;
+}
+
+@media (max-width: 768px) {
+  .search-bar-card {
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+  .search-bar-card .search-field {
+    padding-right: 0.5rem;
+    margin-right: 0.5rem;
+  }
+}
+
+/* ===============================
+   GUESTS DROPDOWN (SEARCH BAR)
+   =============================== */
+.guests-dropdown {
+  box-shadow: 0 4px 24px 0 rgba(36, 171, 112, 0.08), 0 1.5px 6px 0 rgba(0,0,0,0.04);
+  border-radius: 0.75rem;
+  border: 1.5px solid #E5E7EB;
+  background: #fff;
+  min-width: 220px;
+  padding: 1rem;
+  z-index: 20;
+}
+.guest-btn {
+  background: #F2FAF6;
+  color: #24AB70;
+  border: none;
+  border-radius: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.25rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.guest-btn:hover {
+  background: #D1FAE5;
+}
+.guest-input {
+  width: 2.5rem;
+  text-align: center;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  padding: 0.25rem 0.5rem;
+}

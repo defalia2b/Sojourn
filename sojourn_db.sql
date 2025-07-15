@@ -157,3 +157,40 @@ CREATE INDEX idx_users_email ON `users` (`email`);
 -- --------------------------------------------------------
 -- SELESAI: Database siap digunakan
 -- --------------------------------------------------------
+
+-- SOJOURN DATABASE MODIFICATION SCRIPT --
+
+-- Tahap 1: Memodifikasi tabel 'hotels'
+-- Menambahkan kolom untuk bintang hotel (1-5) dan ketersediaan kamar.
+-- Asumsi: Kolom 'name' dan 'price' sudah ada di tabel 'hotels'.
+
+ALTER TABLE `hotels`
+ADD COLUMN `star_rating` TINYINT(1) NOT NULL DEFAULT 3 COMMENT 'Rating bintang hotel dari 1 sampai 5' AFTER `name`,
+ADD COLUMN `availability` INT NOT NULL DEFAULT 0 COMMENT 'Jumlah total kamar yang tersedia' AFTER `price`;
+
+-- Tahap 2: Membuat tabel 'reviews' baru
+-- Tabel ini akan menyimpan semua ulasan yang diberikan oleh pengguna untuk setiap hotel.
+
+CREATE TABLE `reviews` (
+       `id` INT AUTO_INCREMENT PRIMARY KEY,
+       `hotel_id` INT NOT NULL,
+       `user_id` INT NOT NULL,
+       `rating` TINYINT NOT NULL COMMENT 'Rating dari pengguna, skala 1-10',
+       `comment` TEXT,
+       `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE,
+       FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Tahap 3: Membuat tabel 'room_types' baru
+-- Tabel ini akan menyimpan berbagai tipe kamar yang tersedia di setiap hotel.
+
+CREATE TABLE `room_types` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `hotel_id` INT NOT NULL,
+      `name` VARCHAR(255) NOT NULL COMMENT 'Nama tipe kamar, contoh: Deluxe, Standard, Suite',
+      `price` DECIMAL(10, 2) NOT NULL COMMENT 'Harga per malam untuk tipe kamar ini',
+      `availability` INT NOT NULL DEFAULT 0 COMMENT 'Jumlah kamar yang tersedia untuk tipe ini',
+      `image_gallery` TEXT COMMENT 'Menyimpan URL gambar galeri, dipisahkan koma',
+      FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
