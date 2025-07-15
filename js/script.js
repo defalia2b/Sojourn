@@ -4,17 +4,58 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = null;
 
     // --- Dummy Data as Initial Showcase ---
-    const allHotels = [
-        { id: 1, name: 'The Ritz-Carlton', location: 'Jakarta', price: 2500000, rating: 4.9, image: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?q=80&w=1925&auto=format&fit=crop', facilities: ['Kolam Renang', 'WiFi Gratis', 'Spa', 'Parkir', 'Restoran'], description: 'Nikmati kemewahan tak tertandingi di jantung kota Jakarta. The Ritz-Carlton menawarkan layanan bintang lima dengan pemandangan kota yang memukau dan fasilitas kelas dunia.' },
-        { id: 2, name: 'GH Universal Hotel', location: 'Bandung', price: 1200000, rating: 4.8, image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=2070&auto=format&fit=crop', facilities: ['Kolam Renang', 'WiFi Gratis', 'Parkir', 'Restoran'], description: 'Dengan arsitektur bergaya Eropa klasik, GH Universal Hotel memberikan pengalaman menginap yang unik di kota Bandung. Cocok untuk liburan keluarga dan perjalanan bisnis.' },
-        { id: 3, name: 'The Anvaya Beach Resort', location: 'Bali', price: 1800000, rating: 4.9, image: 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070&auto=format&fit=crop', facilities: ['Kolam Renang', 'WiFi Gratis', 'Spa', 'Pusat Kebugaran'], description: 'Terletak di tepi pantai Kuta yang ikonik, The Anvaya Beach Resort adalah surga tropis yang sempurna untuk relaksasi dan menikmati keindahan matahari terbenam Bali.' },
-        { id: 4, name: 'Hotel Indonesia Kempinski', location: 'Jakarta', price: 3250000, rating: 5.0, facilities: ['Kolam Renang', 'WiFi Gratis', 'Spa', 'Pusat Kebugaran'] , image: 'https://images.unsplash.com/photo-1542314831-068cd1dbb563?q=80&w=2070&auto=format&fit=crop', description: 'Sebagai landmark bersejarah Jakarta, hotel ini menawarkan kemewahan modern yang berpadu dengan pesona klasik Indonesia, terletak strategis di Bundaran HI.'},
-        { id: 5, name: 'The Langham, Jakarta', location: 'Jakarta', price: 4100000, rating: 4.9, facilities: ['Kolam Renang', 'Pusat Kebugaran', 'Restoran', 'Spa'], image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=2070&auto=format&fit=crop', description: 'The Langham, Jakarta mendefinisikan kembali arti kemewahan dengan layanan personal yang luar biasa, santapan adiboga, dan fasilitas kesehatan yang canggih.' },
-    ];
+    // const allHotels = [ ... ]; // DIHAPUS, digantikan dengan hasil fetch API
+    let allHotels = [];
     const allFacilitiesOptions = ['Kolam Renang', 'WiFi Gratis', 'Parkir', 'Restoran', 'Spa', 'Pusat Kebugaran'];
 
     // --- Helpers ---
     const formatCurrency = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
+
+    // --- API Communication Functions ---
+    async function fetchHotels() {
+        try {
+            const response = await fetch('api_get_hotels.php');
+            if (!response.ok) throw new Error('Gagal mengambil data hotel');
+            const data = await response.json();
+            allHotels = data.hotels || [];
+        } catch (err) {
+            alert('Gagal mengambil data hotel.');
+            allHotels = [];
+        }
+    }
+
+    async function apiLogin(email, password) {
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('password', password);
+        const response = await fetch('api_login.php', {
+            method: 'POST',
+            body: formData
+        });
+        return response.json();
+    }
+
+    async function apiRegister(name, email, password) {
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('password', password);
+        const response = await fetch('api_register.php', {
+            method: 'POST',
+            body: formData
+        });
+        return response.json();
+    }
+
+    async function apiCreateBooking(bookingData) {
+        const formData = new FormData();
+        Object.entries(bookingData).forEach(([key, value]) => formData.append(key, value));
+        const response = await fetch('api_create_booking.php', {
+            method: 'POST',
+            body: formData
+        });
+        return response.json();
+    }
 
     // --- Navigation Logic & STATE ---
     window.navigate = (pageId, data = null) => {
@@ -105,33 +146,35 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Harap isi semua kolom.');
             return;
         }
-        const users = JSON.parse(localStorage.getItem('sojournUsers')) || [];
-        const userExists = users.some(user => user.email === email);
-        if (userExists) {
-            alert('Email sudah terdaftar. Silakan gunakan email lain.');
-            return;
-        }
-        users.push({ name, email, password });
-        localStorage.setItem('sojournUsers', JSON.stringify(users));
-        alert('Registrasi berhasil! Silakan login.');
-        switchAuthForm('login');
+        apiRegister(name, email, password).then(result => {
+            if (result.success) {
+                alert('Registrasi berhasil! Silakan login.');
+                switchAuthForm('login');
+            } else {
+                alert(result.message || 'Registrasi gagal.');
+            }
+        }).catch(() => {
+            alert('Registrasi gagal.');
+        });
     }
 
     function handleLogin(event) {
         event.preventDefault();
         const email = event.target.elements.email.value;
         const password = event.target.elements.password.value;
-        const users = JSON.parse(localStorage.getItem('sojournUsers')) || [];
-        const foundUser = users.find(user => user.email === email && user.password === password);
-        if (foundUser) {
-            currentUser = foundUser;
-            sessionStorage.setItem('sojournUser', JSON.stringify(foundUser));
-            alert(`Selamat datang kembali, ${currentUser.name}!`);
-            updateHeaderUI();
-            navigate('home');
-        } else {
-            alert('Email atau password salah.');
-        }
+        apiLogin(email, password).then(result => {
+            if (result.success && result.user) {
+                currentUser = result.user;
+                sessionStorage.setItem('sojournUser', JSON.stringify(result.user));
+                alert(`Selamat datang kembali, ${currentUser.name}!`);
+                updateHeaderUI();
+                navigate('home');
+            } else {
+                alert(result.message || 'Email atau password salah.');
+            }
+        }).catch(() => {
+            alert('Login gagal.');
+        });
     }
 
     window.handleLogout = () => {
@@ -219,7 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderHotelDetails(hotelId) {
-        const hotel = allHotels.find(h => h.id === hotelId);
+        const hotel = allHotels.find(h => h.id == hotelId); // gunakan == agar string/number cocok
         if (!hotel) { navigate('home'); return; }
         document.getElementById('hotel-detail-content').innerHTML = `
             <button onclick="navigate('search')" class="mb-8 bg-gray-200 text-gray-800 px-4 py-2 rounded-full font-semibold hover:bg-gray-300">&larr; Kembali ke Pencarian</button>
@@ -231,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="flex items-center gap-2 text-yellow-500 mt-4"><svg class="w-6 h-6 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg><span class="text-2xl font-bold text-brand-black">${hotel.rating}</span></div>
                     <p class="text-brand-grey mt-6 leading-relaxed">${hotel.description}</p>
                     <h3 class="text-xl font-bold text-brand-black mt-6 mb-3">Fasilitas Unggulan</h3>
-                    <div class="flex flex-wrap gap-3">${hotel.facilities.map(f => `<span class="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">${f}</span>`).join('')}</div>
+                    <div class="flex flex-wrap gap-3">${hotel.facilities ? hotel.facilities.map(f => `<span class="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">${f}</span>`).join('') : ''}</div>
                     <div class="mt-8 bg-gray-100 p-6 rounded-lg">
                         <p class="text-3xl font-bold text-brand-green">${formatCurrency(hotel.price)}<span class="text-lg font-normal text-brand-grey"> / malam</span></p>
                         <button onclick="navigate('booking', ${hotel.id})" class="mt-4 w-full bg-brand-green text-white py-4 rounded-lg font-bold text-lg hover:bg-opacity-90">Pesan Sekarang</button>
@@ -257,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
             navigate('login');
             return;
         }
-        const hotel = allHotels.find(h => h.id === hotelId);
+        const hotel = allHotels.find(h => h.id == hotelId);
         document.getElementById('booking-form-content').innerHTML = `
             <div class="lg:col-span-2">
                 <h3 class="text-2xl font-bold text-brand-black mb-6">Isi Data Pemesanan</h3>
@@ -268,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div><label class="font-semibold">Tanggal Check-in</label><input type="date" id="checkin-date" required class="form-input mt-1"></div>
                         <div><label class="font-semibold">Tanggal Check-out</label><input type="date" id="checkout-date" required class="form-input mt-1"></div>
                     </div>
-                    <div><label class="font-semibold">Jumlah Tamu</label><input type="number" value="1" min="1" max="5" required class="form-input mt-1"></div>
+                    <div><label class="font-semibold">Jumlah Tamu</label><input type="number" name="guests" value="1" min="1" max="5" required class="form-input mt-1"></div>
                     <button type="submit" class="w-full bg-brand-green text-white py-3 rounded-lg font-bold text-lg mt-4">Lanjutkan ke Pembayaran</button>
                 </form>
             </div>
@@ -291,9 +334,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleBooking(event, hotelId) {
         event.preventDefault();
-        const hotel = allHotels.find(h => h.id === hotelId);
-        const bookingData = { hotelName: hotel.name, checkin: event.target.elements['checkin-date'].value, checkout: event.target.elements['checkout-date'].value, totalPrice: formatCurrency(hotel.price * 1.1), bookingId: `SOJ-${Date.now()}` };
-        navigate('confirmation', bookingData);
+        const hotel = allHotels.find(h => h.id == hotelId);
+        const checkin = event.target.elements['checkin-date'].value;
+        const checkout = event.target.elements['checkout-date'].value;
+        const guests = event.target.elements['guests'].value;
+        const bookingData = {
+            user_id: currentUser.id,
+            hotel_id: hotel.id,
+            checkin,
+            checkout,
+            guests
+        };
+        apiCreateBooking(bookingData).then(result => {
+            if (result.success) {
+                const bookingInfo = {
+                    hotelName: hotel.name,
+                    checkin,
+                    checkout,
+                    totalPrice: formatCurrency(hotel.price * 1.1),
+                    bookingId: result.booking_id || `SOJ-${Date.now()}`
+                };
+                navigate('confirmation', bookingInfo);
+            } else {
+                alert(result.message || 'Pemesanan gagal.');
+            }
+        }).catch(() => {
+            alert('Pemesanan gagal.');
+        });
     }
 
     function renderConfirmation(bookingData) {
@@ -347,18 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- App Inisiation ---
-    function initApp() {
+    async function initApp() {
         // Checking login session when app is initialized
         const loggedInUser = sessionStorage.getItem('sojournUser');
         if (loggedInUser) {
             currentUser = JSON.parse(loggedInUser);
         }
-        // Render all dynamic contents
+        await fetchHotels(); // Ambil data hotel dari API
         renderHomePage();
         renderAuthForms();
         setupFilters();
-        // Remove direct navigate('home') call, instead show page based on hash
-        // navigate('home');
         updateHeaderUI();
         showPageBasedOnURL(); // Show the correct page on load
     }
