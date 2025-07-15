@@ -12,6 +12,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Helpers ---
     const formatCurrency = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value);
 
+    function getRatingLabel(rating) {
+        if (rating >= 9) return 'Luar Biasa';
+        if (rating >= 8) return 'Sangat Baik';
+        if (rating >= 6.5) return 'Baik';
+        if (rating >= 5) return 'Cukup';
+        if (rating > 0) return 'Buruk';
+        return '-';
+    }
+
     // --- API Communication Functions ---
     async function fetchHotels() {
         try {
@@ -250,13 +259,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="search-field">
                     <label>Tamu</label>
-                    <input type="text" value="2 tamu, 1 kamar">
+                    <div class="flex items-center gap-2">
+                        <button type="button" id="${containerId}-guests-minus" class="bg-gray-200 px-2 py-1 rounded text-lg font-bold">-</button>
+                        <input type="number" id="${containerId}-guests" value="2" min="1" max="10" class="form-input w-16 text-center" style="appearance: textfield;">
+                        <button type="button" id="${containerId}-guests-plus" class="bg-gray-200 px-2 py-1 rounded text-lg font-bold">+</button>
+                    </div>
                 </div>
             </div>
             <button id="${containerId}-button" class="search-button-main">Cari</button>
         `;
+        // Tambahkan event untuk + dan -
+        const guestsInput = document.getElementById(`${containerId}-guests`);
+        document.getElementById(`${containerId}-guests-minus`).onclick = () => {
+            let val = parseInt(guestsInput.value) || 1;
+            if (val > 1) guestsInput.value = val - 1;
+        };
+        document.getElementById(`${containerId}-guests-plus`).onclick = () => {
+            let val = parseInt(guestsInput.value) || 1;
+            if (val < 10) guestsInput.value = val + 1;
+        };
+        guestsInput.addEventListener('input', () => {
+            let val = parseInt(guestsInput.value) || 1;
+            if (val < 1) guestsInput.value = 1;
+            if (val > 10) guestsInput.value = 10;
+        });
         document.getElementById(`${containerId}-button`).onclick = () => {
             const query = document.getElementById(`${containerId}-location`).value;
+            // Bisa tambahkan pengambilan jumlah tamu jika ingin filter berdasarkan tamu
             navigate('search', { query });
         };
     }
@@ -311,6 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ulasan
         const avgRating = hotel.avg_review_rating ? parseFloat(hotel.avg_review_rating).toFixed(1) : '-';
         const reviewCount = hotel.review_count || 0;
+        const ratingLabel = hotel.avg_review_rating ? getRatingLabel(hotel.avg_review_rating) : '-';
         // Star rating
         const starHTML = `<span class='text-yellow-500'>${'★'.repeat(hotel.star_rating)}${'☆'.repeat(5-hotel.star_rating)}</span>`;
         // Render
@@ -337,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="flex items-center gap-2 mb-2">
                             <span class="text-lg font-bold text-brand-black">${avgRating}</span>
                             <span class="text-gray-500">/ 10</span>
+                            <span class="text-xs text-brand-green font-semibold ml-1">${ratingLabel}</span>
                             <span class="text-gray-500">(${reviewCount} ulasan)</span>
                             <button class="text-brand-green underline ml-2" onclick="showAllReviews(${hotel.id})">Lihat semua ulasan</button>
                         </div>
@@ -585,6 +616,47 @@ document.addEventListener('DOMContentLoaded', () => {
         facilityContainer.innerHTML = allFacilitiesOptions.map(f => `<label class="flex items-center"><input type="checkbox" value="${f}" class="h-5 w-5 rounded border-gray-300 text-brand-green"><span class="ml-3 text-brand-grey">${f}</span></label>`).join('');
         facilityContainer.addEventListener('change', applyFilters);
         renderSortDropdown();
+    }
+
+    function showAllReviews(hotelId) {
+        // Buat modal overlay
+        let modal = document.getElementById('reviews-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'reviews-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50';
+            modal.innerHTML = `<div class='bg-white rounded-xl shadow-lg max-w-2xl w-full p-8 relative'>
+                <button id='close-reviews-modal' class='absolute top-2 right-2 text-gray-500 hover:text-red-500 text-2xl'>&times;</button>
+                <h2 class='text-2xl font-bold mb-4'>Semua Ulasan</h2>
+                <div id='reviews-list'>Memuat ulasan...</div>
+            </div>`;
+            document.body.appendChild(modal);
+            document.getElementById('close-reviews-modal').onclick = () => modal.remove();
+        } else {
+            modal.style.display = 'flex';
+        }
+        // Fetch reviews
+        fetch(`api_get_reviews.php?hotel_id=${hotelId}`)
+            .then(res => res.json())
+            .then(data => {
+                const list = document.getElementById('reviews-list');
+                if (!data.success || !data.reviews || data.reviews.length === 0) {
+                    list.innerHTML = '<div class="text-gray-400">Belum ada ulasan untuk hotel ini.</div>';
+                    return;
+                }
+                list.innerHTML = data.reviews.map(r => `
+                    <div class='border-b py-3'>
+                        <div class='flex items-center gap-2 mb-1'>
+                            <span class='font-bold text-brand-black'>${r.user_name}</span>
+                            <span class='text-yellow-500'>${'★'.repeat(Math.round(r.rating/2))}${'☆'.repeat(5-Math.round(r.rating/2))}</span>
+                            <span class='text-xs text-gray-500'>${parseFloat(r.rating).toFixed(1)}/10</span>
+                            <span class='text-xs text-brand-green font-semibold ml-1'>${getRatingLabel(r.rating)}</span>
+                            <span class='text-xs text-gray-400 ml-2'>${new Date(r.created_at).toLocaleDateString('id-ID')}</span>
+                        </div>
+                        <div class='text-gray-700'>${r.comment || '-'}</div>
+                    </div>
+                `).join('');
+            });
     }
 
     // --- App Inisiation ---
