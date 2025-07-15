@@ -82,30 +82,45 @@
             <div id="search-page" class="page-content hidden">
                 <div class="container mx-auto py-12">
                     <div id="search-page-bar"></div>
-                    <div class="flex flex-col md:flex-row md:items-end md:gap-8 mt-8 mb-6">
-                        <!-- Filter Harga -->
-                        <div class="flex flex-col mb-4 md:mb-0">
-                            <label class="font-semibold mb-2">Harga (IDR)</label>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="price-min-input" class="form-input w-24" placeholder="Min">
-                                <span>-</span>
-                                <input type="number" id="price-max-input" class="form-input w-24" placeholder="Max">
+                    <div class="flex flex-col md:flex-row gap-8 mt-8 mb-6">
+                        <!-- Filter Section (Left Column) -->
+                        <div class="w-full md:w-1/5 flex-shrink-0">
+                            <!-- Card Filter (Lokasi, Check-in, dsb) -->
+                            <div id="filter-card-container"></div>
+                            <!-- Filter Harga -->
+                            <div class="flex flex-col mb-4">
+                                <label class="font-semibold mb-2">Harga (IDR)</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="price-min-input" class="form-input w-24" placeholder="Min">
+                                    <span>-</span>
+                                    <input type="number" id="price-max-input" class="form-input w-24" placeholder="Max">
+                                </div>
+                                <input type="range" id="price-range-slider" min="0" max="20000000" step="10000" class="w-full mt-2">
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span id="price-min-label">0</span>
+                                    <span id="price-max-label">20.000.000+</span>
+                                </div>
                             </div>
-                            <input type="range" id="price-range-slider" min="0" max="10000000" step="10000" class="w-full mt-2">
-                            <div class="flex justify-between text-xs text-gray-500 mt-1">
-                                <span id="price-min-label">0</span>
-                                <span id="price-max-label">10.000.000+</span>
+                            <div class="mb-4">
+                                <label class="font-semibold mb-2 block">Rating Bintang</label>
+                                <div id="star-filter-options"></div>
+                            </div>
+                            <div class="mb-4">
+                                <label class="font-semibold mb-2 block">Fasilitas</label>
+                                <div id="facility-filter-options"></div>
                             </div>
                         </div>
-                        <!-- Placeholder filter/sort lain -->
-                        <div id="star-filter-options" class="mb-4 md:mb-0"></div>
-                        <div id="facility-filter-options" class="mb-4 md:mb-0"></div>
-                        <div id="sort-dropdown-container" class="mb-4 md:mb-0"></div>
+                        <!-- Result Section (Right Column) -->
+                        <div class="w-full md:w-4/5">
+                            <div class="flex justify-end mb-4">
+                                <div id="sort-dropdown-container"></div>
+                            </div>
+                            <div class="flex justify-between items-center mb-4">
+                                <div id="search-results-count"></div>
+                            </div>
+                            <div id="search-results-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center mb-4">
-                        <div id="search-results-count"></div>
-                    </div>
-                    <div id="search-results-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
                 </div>
             </div>
             
@@ -169,24 +184,42 @@
             <div id="team-page" class="page-content hidden">
                 <div class="container mx-auto px-6 py-12">
                     <h2 class="text-3xl font-bold text-center text-brand-black mb-8">Tentang Kami</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 justify-items-center">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
+                        <!-- Anggota Tim: Ganti src dan info sesuai kebutuhan -->
                         <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center">
-                            <img src="img/hotels/kempinski.png" class="w-24 h-24 object-cover rounded-full mb-4" alt="Foto Anggota 1">
-                            <h3 class="font-bold text-xl mb-1">Nama Anggota 1</h3>
-                            <p class="text-brand-green font-semibold mb-1">Frontend Developer</p>
-                            <p class="text-gray-500 text-center">Deskripsi singkat tentang anggota tim ini.</p>
+                            <img src="img/team/gerry.jpg" class="w-24 h-24 object-cover rounded-full mb-4" alt="Gerry Artama">
+                            <h3 class="font-bold text-xl mb-1">Gerry Artama</h3>
+                            <p class="text-brand-green font-semibold mb-1">20230801312</p>
                         </div>
                         <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center">
-                            <img src="img/hotels/langham.jpg" class="w-24 h-24 object-cover rounded-full mb-4" alt="Foto Anggota 2">
-                            <h3 class="font-bold text-xl mb-1">Nama Anggota 2</h3>
-                            <p class="text-brand-green font-semibold mb-1">Backend Developer</p>
-                            <p class="text-gray-500 text-center">Deskripsi singkat tentang anggota tim ini.</p>
+                            <img src="img/team/dewi.jpg" class="w-24 h-24 object-cover rounded-full mb-4" alt="Dewi Farah Aulia Bahiyyah">
+                            <h3 class="font-bold text-xl mb-1">Dewi Farah Aulia Bahiyyah</h3>
+                            <p class="text-brand-green font-semibold mb-1">20230801226</p>
                         </div>
                         <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center">
-                            <img src="Logo Website/1.png" class="w-24 h-24 object-cover rounded-full mb-4" alt="Foto Anggota 3">
-                            <h3 class="font-bold text-xl mb-1">Nama Anggota 3</h3>
-                            <p class="text-brand-green font-semibold mb-1">UI/UX Designer</p>
-                            <p class="text-gray-500 text-center">Deskripsi singkat tentang anggota tim ini.</p>
+                            <img src="img/team/aina.jpg" class="w-24 h-24 object-cover rounded-full mb-4" alt="Aina Rahma Putri">
+                            <h3 class="font-bold text-xl mb-1">Aina Rahma Putri</h3>
+                            <p class="text-brand-green font-semibold mb-1">20230801087</p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center">
+                            <img src="img/team/mathew.jpg" class="w-24 h-24 object-cover rounded-full mb-4" alt="Mathew Andrew Setiawan">
+                            <h3 class="font-bold text-xl mb-1">Mathew Andrew Setiawan</h3>
+                            <p class="text-brand-green font-semibold mb-1">20230801037</p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center">
+                            <img src="img/team/feri.jpg" class="w-24 h-24 object-cover rounded-full mb-4" alt="Feri Bagus Riadi">
+                            <h3 class="font-bold text-xl mb-1">Feri Bagus Riadi</h3>
+                            <p class="text-brand-green font-semibold mb-1">20230801232</p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center">
+                            <img src="img/team/adri.jpg" class="w-24 h-24 object-cover rounded-full mb-4" alt="Adri Ibrahim Latif">
+                            <h3 class="font-bold text-xl mb-1">Adri Ibrahim Latif</h3>
+                            <p class="text-brand-green font-semibold mb-1">20230801255</p>
+                        </div>
+                        <div class="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center">
+                            <img src="img/team/teta.jpg" class="w-24 h-24 object-cover rounded-full mb-4" alt="Teta Edovia">
+                            <h3 class="font-bold text-xl mb-1">Teta Edovia</h3>
+                            <p class="text-brand-green font-semibold mb-1">20230801137</p>
                         </div>
                     </div>
                 </div>

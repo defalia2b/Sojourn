@@ -1,3 +1,36 @@
+// FUNGSI GLOBAL DI LUAR
+window.navigate = function(pageId, data = null) {
+    if (window.location.hash !== '#' + pageId) {
+        window.location.hash = '#' + pageId;
+    }
+    if (data !== null) {
+        window._navigateData = data;
+    } else {
+        window._navigateData = null;
+    }
+};
+
+window.handleLogout = function() {
+    const userName = currentUser?.name || '';
+    currentUser = null;
+    sessionStorage.removeItem('sojournUser');
+    alert(`Anda telah berhasil logout, ${userName}.`);
+    updateHeaderUI();
+    navigate('home');
+};
+
+window.switchAuthForm = function(formType) {
+    if (window.location.hash !== '#' + formType) {
+        window.location.hash = '#' + formType;
+    } else {
+        showPageBasedOnURL();
+    }
+    document.getElementById('login-form-container').classList.add('hidden');
+    document.getElementById('register-form-container').classList.add('hidden');
+    document.getElementById('forgot-form-container').classList.add('hidden');
+    document.getElementById(formType + '-form-container').classList.remove('hidden');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- App State ---
@@ -68,18 +101,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Navigation Logic & STATE ---
-    window.navigate = (pageId, data = null) => {
-        // Update the URL hash for client-side routing
-        if (window.location.hash !== '#' + pageId) {
-            window.location.hash = '#' + pageId;
-        }
-        // Optionally store data for detail/booking/confirmation
-        if (data !== null) {
-            window._navigateData = data;
-        } else {
-            window._navigateData = null;
-        }
-    };
+    // window.navigate = (pageId, data = null) => { // HAPUS deklarasi ini dari dalam blok
+    //     // Update the URL hash for client-side routing
+    //     if (window.location.hash !== '#' + pageId) {
+    //         window.location.hash = '#' + pageId;
+    //     }
+    //     // Optionally store data for detail/booking/confirmation
+    //     if (data !== null) {
+    //         window._navigateData = data;
+    //     } else {
+    //         window._navigateData = null;
+    //     }
+    // };
 
     // --- Client-side Routing: Show Page Based on URL Hash ---
     function showPageBasedOnURL() {
@@ -108,15 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
             showBookingForm(window._navigateData);
         } else if (pageId === 'confirmation') {
             renderConfirmation(window._navigateData);
-        } 
-        // Special handling for login/register/forgot forms
-        if (pageId === 'login' || pageId === 'register' || pageId === 'forgot') {
-            renderAuthForms();
-            // Show the correct form
-            document.getElementById('login-form-container').classList.add('hidden');
-            document.getElementById('register-form-container').classList.add('hidden');
-            document.getElementById('forgot-form-container').classList.add('hidden');
-            document.getElementById(pageId + '-form-container').classList.remove('hidden');
+        } else if (pageId === 'team') {
+            // Tidak perlu render khusus, cukup tampilkan section
+            // Jangan navigate('home') di sini
+        } else {
+            // Jangan navigate('home') otomatis!
+            // Biarkan hash tetap, tampilkan page kosong jika id tidak dikenali
         }
         // Show the page div
         const pageDiv = document.getElementById(pageId + '-page');
@@ -187,29 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.handleLogout = () => {
-        const userName = currentUser.name;
-        currentUser = null;
-        sessionStorage.removeItem('sojournUser');
-        alert(`Anda telah berhasil logout, ${userName}.`);
-        updateHeaderUI();
-        navigate('home');
-    };
-
-    window.switchAuthForm = (formType) => {
-        // Update hash to reflect the form type
-        if (window.location.hash !== '#' + formType) {
-            window.location.hash = '#' + formType;
-        } else {
-            // If hash is already correct, force update the UI
-            showPageBasedOnURL();
-        }
-        document.getElementById('login-form-container').classList.add('hidden');
-        document.getElementById('register-form-container').classList.add('hidden');
-        document.getElementById('forgot-form-container').classList.add('hidden');
-        document.getElementById(formType + '-form-container').classList.remove('hidden');
-    };
-    
     // --- Content Render Funciton ---
     
     function renderHotelCard(hotel) {
@@ -298,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderSearchResultsPage(data = {}) {
         const query = data.query || '';
         renderSearchBar('search-page-bar', query);
+        setupFilters(); // Pindahkan ke sini
         applyFilters();
     }
     
@@ -575,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Harga min/maks dari data hotel
         const prices = allHotels.map(h => h.price);
         const minPrice = Math.min(...prices, 0);
-        const maxPrice = Math.max(...prices, 10000000);
+        const maxPrice = 20000000;
         const priceSlider = document.getElementById('price-range-slider');
         const priceMinInput = document.getElementById('price-min-input');
         const priceMaxInput = document.getElementById('price-max-input');
@@ -667,11 +675,10 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser = JSON.parse(loggedInUser);
         }
         await fetchHotels(); // Ambil data hotel dari API
-        renderHomePage();
         renderAuthForms();
-        setupFilters();
         updateHeaderUI();
         showPageBasedOnURL(); // Show the correct page on load
+        // setupFilters(); // HAPUS dari sini
     }
 
     initApp(); // Run the app
