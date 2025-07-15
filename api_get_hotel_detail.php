@@ -49,19 +49,22 @@ while ($r_row = $r_result->fetch_assoc()) {
     $room_types[] = $r_row;
 }
 $r_stmt->close();
-// (Opsional) Ambil rating rata-rata dari reviews
+// (Opsional) Ambil rating rata-rata dan jumlah review dari reviews
 $avg_rating = null;
-$review_sql = 'SELECT AVG(rating) as avg_rating FROM reviews WHERE hotel_id = ?';
+$review_count = 0;
+$review_sql = 'SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM reviews WHERE hotel_id = ?';
 $review_stmt = $conn->prepare($review_sql);
 $review_stmt->bind_param('i', $hotel_id);
 $review_stmt->execute();
 $review_result = $review_stmt->get_result();
 if ($review_row = $review_result->fetch_assoc()) {
     $avg_rating = $review_row['avg_rating'] ? round($review_row['avg_rating'], 2) : null;
+    $review_count = $review_row['review_count'] ? intval($review_row['review_count']) : 0;
 }
 $review_stmt->close();
 $hotel['facilities'] = $facilities;
 $hotel['room_types'] = $room_types;
 $hotel['avg_review_rating'] = $avg_rating;
+$hotel['review_count'] = $review_count;
 echo json_encode(['success' => true, 'hotel' => $hotel]);
 $conn->close(); 

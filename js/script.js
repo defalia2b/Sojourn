@@ -464,11 +464,15 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `).join('') : '<div class="text-gray-400">Tidak ada tipe kamar tersedia.</div>';
         // Ulasan
-        const avgRating = hotel.avg_review_rating ? parseFloat(hotel.avg_review_rating).toFixed(1) : '-';
+        function capitalize(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+        }
+        const avgRating = hotel.avg_review_rating !== null && hotel.avg_review_rating !== undefined ? parseFloat(hotel.avg_review_rating).toFixed(1) : '-';
         const reviewCount = hotel.review_count || 0;
-        const ratingLabel = hotel.avg_review_rating ? getRatingLabel(hotel.avg_review_rating) : '-';
+        const ratingLabel = hotel.avg_review_rating !== null && hotel.avg_review_rating !== undefined ? capitalize(getRatingLabel(hotel.avg_review_rating)) : '-';
         // Star rating
-        const starHTML = `<span class='text-yellow-500'>${'★'.repeat(hotel.star_rating)}${'☆'.repeat(5-hotel.star_rating)}</span>`;
+        const starHTML = `<span class='text-yellow-500'>${'★'.repeat(hotel.star_rating)}</span>`;
         // Render
         document.getElementById('hotel-detail-content').innerHTML = `
             <button onclick="navigate('search')" class="mb-8 bg-gray-200 text-gray-800 px-4 py-2 rounded-full font-semibold hover:bg-gray-300">&larr; Kembali ke Pencarian</button>
@@ -486,7 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div>
                         <!-- Info Utama -->
                         <h1 class="text-4xl font-bold text-brand-black mb-2">${hotel.name}</h1>
-                        <div class="flex items-center gap-3 mb-2">${starHTML} <span class="text-gray-500">(${hotel.star_rating} bintang)</span></div>
+                        <div class="flex items-center gap-3 mb-2">${starHTML}</div>
                         <div class="text-brand-green text-2xl font-bold mb-2">${minRoomPrice ? formatCurrency(minRoomPrice) : '-'} <span class="text-base font-normal text-brand-grey">/ malam</span></div>
                         <div class="text-gray-600 mb-2">${hotel.location || '-'}</div>
                         <!-- Ulasan -->
