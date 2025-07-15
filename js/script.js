@@ -249,6 +249,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (moreCount > 0) {
             fasilitasHTML += `<span class='bg-gray-200 text-gray-700 text-xs font-semibold px-2 py-1 rounded-full cursor-pointer relative more-facilities-tag' title='${fasilitas.slice(maxShow).join(', ')}'>+${moreCount}</span>`;
         }
+        // Ambil harga termurah dari room_types
+        let minRoomPrice = null;
+        if (hotel.room_types && hotel.room_types.length > 0) {
+            minRoomPrice = Math.min(...hotel.room_types.map(rt => parseFloat(rt.price)));
+        }
+        // Ambil gambar utama hotel
+        const mainImage = hotel.image || (hotel.room_types && hotel.room_types[0] && hotel.room_types[0].image_gallery ? hotel.room_types[0].image_gallery.split(',')[0].trim() : '');
         // Ambil rating dari review (presisi 1) dan label huruf capitalize
         function capitalize(str) {
             if (!str) return '';
@@ -258,13 +265,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const ratingLabel = hotel.avg_review_rating !== null && hotel.avg_review_rating !== undefined ? capitalize(getRatingLabel(hotel.avg_review_rating)) : '-';
         return `
             <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-pointer" onclick="navigate('detail', ${hotel.id})">
-                <img src="${hotel.image}" class="w-full h-56 object-cover" alt="Gambar ${hotel.name}">
-                <div class="p-6">
-                    <p class="text-sm text-brand-grey">${hotel.location}</p>
-                    <h3 class="text-xl font-bold text-brand-black mt-1">${hotel.name}</h3>
-                    <div class="flex justify-between items-center mt-4">
-                        <p class="text-lg font-semibold text-brand-green">${formatCurrency(hotel.price)} <span class="text-sm font-normal text-brand-grey">/ malam</span></p>
-                        <div class="flex flex-col items-end">
+                <img src="${mainImage}" class="w-full h-56 object-cover" alt="Gambar ${hotel.name}">
+                <div class="p-6 flex flex-col gap-2">
+                    <p class="text-sm text-brand-grey mb-1">${hotel.location}</p>
+                    <h3 class="text-xl font-bold text-brand-black mb-2">${hotel.name}</h3>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex flex-col items-start">
+                            <span class="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Mulai dari</span>
+                            <span class="text-2xl font-bold text-brand-green leading-tight">${minRoomPrice !== null ? formatCurrency(minRoomPrice) : '-'}</span>
+                            <span class="text-xs text-brand-grey font-normal">/ malam</span>
+                        </div>
+                        <div class="flex flex-col items-end ml-4">
                             <span class="font-bold text-brand-black text-lg">
                                 <svg class="inline w-5 h-5 text-yellow-500 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
                                 ${avgRating}
@@ -515,7 +526,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <!-- Info Utama -->
                         <h1 class="text-4xl font-bold text-brand-black mb-2">${hotel.name}</h1>
                         <div class="flex items-center gap-3 mb-2">${starHTML}</div>
-                        <div class="text-brand-green text-2xl font-bold mb-2">${minRoomPrice ? formatCurrency(minRoomPrice) : '-'} <span class="text-base font-normal text-brand-grey">/ malam</span></div>
+                        <div class="flex flex-col items-start mb-4">
+                            <span class="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Mulai dari</span>
+                            <span class="text-3xl font-bold text-brand-green leading-tight">${minRoomPrice ? formatCurrency(minRoomPrice) : '-'}</span>
+                            <span class="text-xs text-brand-grey font-normal">/ malam</span>
+                        </div>
                         <div class="text-gray-600 mb-2">${hotel.location || '-'}</div>
                         <!-- Ulasan -->
                         <div class="flex items-center gap-2 mb-2">
