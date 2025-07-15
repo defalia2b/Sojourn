@@ -116,6 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Client-side Routing: Show Page Based on URL Hash ---
     function showPageBasedOnURL() {
+        // Jika data hotel belum siap, jangan render page lain dulu
+        if (!allHotels || allHotels.length === 0) {
+            document.querySelectorAll('.page-content').forEach(page => page.classList.add('hidden'));
+            // Optional: tampilkan pesan loading di salah satu div jika mau
+            return;
+        }
         const hash = window.location.hash || '#home';
         const pageId = hash.replace('#', '');
         // Hide all pages
