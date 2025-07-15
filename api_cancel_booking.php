@@ -2,7 +2,15 @@
 session_start();
 header('Content-Type: application/json');
 
-require_once 'db_connect.php'; // Pastikan file ini ada dan berisi koneksi ke database
+$host = 'localhost';
+$user = 'root';
+$pass = '';
+$db = 'sojourn_db';
+$conn = new mysqli($host, $user, $pass, $db);
+if ($conn->connect_error) {
+    echo json_encode(['success' => false, 'message' => 'Koneksi database gagal']);
+    exit();
+}
 
 // Cek apakah user sudah login
 if (!isset($_SESSION['user_id'])) {
