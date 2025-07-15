@@ -18,26 +18,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Navigation Logic & STATE ---
     window.navigate = (pageId, data = null) => {
+        // Update the URL hash for client-side routing
+        if (window.location.hash !== '#' + pageId) {
+            window.location.hash = '#' + pageId;
+        }
+        // Optionally store data for detail/booking/confirmation
+        if (data !== null) {
+            window._navigateData = data;
+        } else {
+            window._navigateData = null;
+        }
+    };
+
+    // --- Client-side Routing: Show Page Based on URL Hash ---
+    function showPageBasedOnURL() {
+        const hash = window.location.hash || '#home';
+        const pageId = hash.replace('#', '');
+        // Hide all pages
         document.querySelectorAll('.page-content').forEach(page => page.classList.add('hidden'));
         const header = document.getElementById('main-header');
         const footer = document.getElementById('main-footer');
-        
-        if (pageId === 'login') {
+        // Hide header/footer for login/register/forgot page
+        if (pageId === 'login' || pageId === 'register' || pageId === 'forgot') {
             header.classList.add('hidden');
             footer.classList.add('hidden');
         } else {
             header.classList.remove('hidden');
             footer.classList.remove('hidden');
         }
-
-        if (pageId === 'search') renderSearchResultsPage(data);
-        if (pageId === 'detail') renderHotelDetails(data);
-        if (pageId === 'booking') showBookingForm(data);
-        if (pageId === 'confirmation') renderConfirmation(data);
-
-        document.getElementById(pageId + '-page').classList.remove('hidden');
+        // Render and show the correct page or form
+        if (pageId === 'home') {
+            renderHomePage();
+        } else if (pageId === 'search') {
+            renderSearchResultsPage(window._navigateData || {});
+        } else if (pageId === 'detail') {
+            renderHotelDetails(window._navigateData);
+        } else if (pageId === 'booking') {
+            showBookingForm(window._navigateData);
+        } else if (pageId === 'confirmation') {
+            renderConfirmation(window._navigateData);
+        } 
+        // Special handling for login/register/forgot forms
+        if (pageId === 'login' || pageId === 'register' || pageId === 'forgot') {
+            renderAuthForms();
+            // Show the correct form
+            document.getElementById('login-form-container').classList.add('hidden');
+            document.getElementById('register-form-container').classList.add('hidden');
+            document.getElementById('forgot-form-container').classList.add('hidden');
+            document.getElementById(pageId + '-form-container').classList.remove('hidden');
+        }
+        // Show the page div
+        const pageDiv = document.getElementById(pageId + '-page');
+        if (pageDiv) {
+            pageDiv.classList.remove('hidden');
+        }
         window.scrollTo(0, 0);
-    };
+        updateHeaderUI();
+    }
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', showPageBasedOnURL);
 
     // --- User Authentication Logic (LOGIN/REGISTER/LOGOUT) ---
     function updateHeaderUI() {
@@ -104,6 +144,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.switchAuthForm = (formType) => {
+        // Update hash to reflect the form type
+        if (window.location.hash !== '#' + formType) {
+            window.location.hash = '#' + formType;
+        } else {
+            // If hash is already correct, force update the UI
+            showPageBasedOnURL();
+        }
         document.getElementById('login-form-container').classList.add('hidden');
         document.getElementById('register-form-container').classList.add('hidden');
         document.getElementById('forgot-form-container').classList.add('hidden');
@@ -195,9 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAuthForms() {
-        document.getElementById('login-form-container').innerHTML = `<h2 class="text-2xl font-bold text-center">Selamat Datang Kembali!</h2><p class="text-center text-brand-grey mt-2 mb-6">Silakan masuk ke akun Anda.</p><form id="login-form" class="space-y-4"><input name="email" type="email" placeholder="Alamat Email" required class="form-input"><div><input name="password" type="password" placeholder="Password" required class="form-input"><a href="#" onclick="switchAuthForm('forgot')" class="text-sm text-brand-green hover:underline block text-right mt-1">Lupa password?</a></div><button type="submit" class="w-full bg-brand-green text-white py-3 rounded-lg font-semibold">Masuk</button></form><p class="text-center text-sm mt-6">Belum punya akun? <a href="#" onclick="switchAuthForm('register')" class="font-medium text-brand-green hover:underline">Daftar</a></p>`;
-        document.getElementById('register-form-container').innerHTML = `<h2 class="text-2xl font-bold text-center">Buat Akun Baru</h2><p class="text-center text-brand-grey mt-2 mb-6">Mulai perjalanan Anda.</p><form id="register-form" class="space-y-4"><input name="name" type="text" placeholder="Nama Lengkap" required class="form-input"><input name="email" type="email" placeholder="Alamat Email" required class="form-input"><input name="password" type="password" placeholder="Password" required class="form-input"><button type="submit" class="w-full bg-brand-green text-white py-3 rounded-lg font-semibold">Daftar</button></form><p class="text-center text-sm mt-6">Sudah punya akun? <a href="#" onclick="switchAuthForm('login')" class="font-medium text-brand-green hover:underline">Masuk</a></p>`;
-        document.getElementById('forgot-form-container').innerHTML = `<h2 class="text-2xl font-bold text-center">Lupa Password</h2><p class="text-center text-brand-grey mt-2 mb-6">Fitur ini belum tersedia.</p><p class="text-center text-sm mt-6"><a href="#" onclick="switchAuthForm('login')" class="font-medium text-brand-green hover:underline">Kembali ke Login</a></p>`;
+        document.getElementById('login-form-container').innerHTML = `<h2 class="text-2xl font-bold text-center">Selamat Datang Kembali!</h2><p class="text-center text-brand-grey mt-2 mb-6">Silakan masuk ke akun Anda.</p><form id="login-form" class="space-y-4"><input name="email" type="email" placeholder="Alamat Email" required class="form-input"><div><input name="password" type="password" placeholder="Password" required class="form-input"><a href="#" onclick="switchAuthForm('forgot'); event.preventDefault();" class="text-sm text-brand-green hover:underline block text-right mt-1">Lupa password?</a></div><button type="submit" class="w-full bg-brand-green text-white py-3 rounded-lg font-semibold">Masuk</button></form><p class="text-center text-sm mt-6">Belum punya akun? <a href="#" onclick="switchAuthForm('register'); event.preventDefault();" class="font-medium text-brand-green hover:underline">Daftar</a></p>`;
+        document.getElementById('register-form-container').innerHTML = `<h2 class="text-2xl font-bold text-center">Buat Akun Baru</h2><p class="text-center text-brand-grey mt-2 mb-6">Mulai perjalanan Anda.</p><form id="register-form" class="space-y-4"><input name="name" type="text" placeholder="Nama Lengkap" required class="form-input"><input name="email" type="email" placeholder="Alamat Email" required class="form-input"><input name="password" type="password" placeholder="Password" required class="form-input"><button type="submit" class="w-full bg-brand-green text-white py-3 rounded-lg font-semibold">Daftar</button></form><p class="text-center text-sm mt-6">Sudah punya akun? <a href="#" onclick="switchAuthForm('login'); event.preventDefault();" class="font-medium text-brand-green hover:underline">Masuk</a></p>`;
+        document.getElementById('forgot-form-container').innerHTML = `<h2 class="text-2xl font-bold text-center">Lupa Password</h2><p class="text-center text-brand-grey mt-2 mb-6">Fitur ini belum tersedia.</p><p class="text-center text-sm mt-6"><a href="#" onclick="switchAuthForm('login'); event.preventDefault();" class="font-medium text-brand-green hover:underline">Kembali ke Login</a></p>`;
         
         // Adding listener event onto the form after being rendered
         document.getElementById('login-form').addEventListener('submit', handleLogin);
@@ -306,15 +353,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (loggedInUser) {
             currentUser = JSON.parse(loggedInUser);
         }
-        
         // Render all dynamic contents
         renderHomePage();
         renderAuthForms();
         setupFilters();
-        
-        // Showing the first page and update the UI header
-        navigate('home');
+        // Remove direct navigate('home') call, instead show page based on hash
+        // navigate('home');
         updateHeaderUI();
+        showPageBasedOnURL(); // Show the correct page on load
     }
 
     initApp(); // Run the app
