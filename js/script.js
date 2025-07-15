@@ -1,4 +1,5 @@
 // FUNGSI GLOBAL DI LUAR
+let currentUser = null;
 window.navigate = function(pageId, data = null) {
     if (window.location.hash !== '#' + pageId) {
         window.location.hash = '#' + pageId;
@@ -15,8 +16,7 @@ window.handleLogout = function() {
     currentUser = null;
     sessionStorage.removeItem('sojournUser');
     alert(`Anda telah berhasil logout, ${userName}.`);
-    updateHeaderUI();
-    navigate('home');
+    window.location.href = window.location.pathname; // Redirect ke halaman utama setelah logout
 };
 
 window.switchAuthForm = function(formType) {
@@ -33,10 +33,20 @@ window.switchAuthForm = function(formType) {
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- App State ---
-    let currentUser = null;
+    // --- Inisialisasi currentUser dari sessionStorage jika ada ---
+    const userStr = sessionStorage.getItem('sojournUser');
+    if (userStr) {
+        try {
+            currentUser = JSON.parse(userStr);
+        } catch (e) {
+            currentUser = null;
+        }
+    } else {
+        currentUser = null;
+    }
+    updateHeaderUI();
 
-    // --- Dummy Data as Initial Showcase ---
+    // --- App State ---
     // const allHotels = [ ... ]; // DIHAPUS, digantikan dengan hasil fetch API
     let allHotels = [];
     let allFacilitiesOptions = ['Kolam Renang', 'WiFi Gratis', 'Parkir', 'Restoran', 'Spa', 'Pusat Kebugaran'];
@@ -164,6 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (pageId === 'team') {
             // Tidak perlu render khusus, cukup tampilkan section
             // Jangan navigate('home') di sini
+        } else if (pageId === 'history') {
+            fetchAndRenderBookings();
         } else {
             // Jangan navigate('home') otomatis!
             // Biarkan hash tetap, tampilkan page kosong jika id tidak dikenali
@@ -186,6 +198,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentUser) {
             authContainer.innerHTML = `
                 <div class="flex items-center gap-4">
+                    <button onclick="navigate('history'); event.preventDefault();" class="flex items-center gap-2 bg-brand-green text-white px-5 py-2 rounded-full shadow-md font-semibold hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-400">
+                        <svg xmlns='http://www.w3.org/2000/svg' class='w-5 h-5 mr-1' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'>
+                            <path stroke-linecap='round' stroke-linejoin='round' d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' />
+                        </svg>
+                        Pemesanan Saya
+                    </button>
                     <span class="font-semibold text-brand-grey">Halo, ${currentUser.name.split(' ')[0]}</span>
                     <button onclick="handleLogout()" class="bg-red-500 text-white px-6 py-2 rounded-full font-semibold hover:bg-red-600 transition-colors">Logout</button>
                 </div>
@@ -861,6 +879,140 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `).join('');
             });
+    }
+
+    // --- Riwayat Pemesanan ---
+    async function fetchAndRenderBookings() {
+        console.log('fetchAndRenderBookings called');
+        const bookingListDiv = document.getElementById('booking-list');
+        bookingListDiv.innerHTML = '<div class="text-center">Memuat riwayat pemesanan...</div>';
+        try {
+            const response = await fetch('api_get_my_bookings.php', { credentials: 'include' });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.message || 'Gagal mengambil data pemesanan');
+            const bookings = data.bookings || [];
+            if (bookings.length === 0) {
+                bookingListDiv.innerHTML = '<div class="text-center">Belum ada riwayat pemesanan.</div>';
+                return;
+            }
+            bookingListDiv.innerHTML = '';
+            bookings.forEach(booking => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow p-6 mb-4 flex flex-col gap-2';
+                card.innerHTML = `
+                    <div class="flex items-center gap-4 mb-2">
+                        <img src="${booking.hotel_image || 'img/hotels/default.png'}" alt="${booking.hotel_name}" class="w-20 h-20 object-cover rounded-lg border">
+                        <div>
+                            <div class="font-bold text-lg">${booking.hotel_name}</div>
+                            <div class="text-sm text-gray-500">${booking.room_type || '-'} | ${booking.guests || 1} tamu</div>
+                        </div>
+                    </div>
+                    <div class="text-sm">Check-in: <b>${booking.check_in}</b></div>
+                    <div class="text-sm">Check-out: <b>${booking.check_out}</b></div>
+                    <div class="text-sm">Total Harga: <b>${formatCurrency(booking.total_price)}</b></div>
+                    <div class="text-sm">Status: <span class="font-semibold ${booking.status === 'cancelled' ? 'text-red-500' : 'text-green-600'}">${booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span></div>
+                    ${booking.status === 'confirmed' ? `<button class="btn-cancel-booking bg-red-500 text-white px-4 py-2 rounded mt-2" data-booking-id="${booking.id}">Batalkan Pemesanan</button>` : ''}
+                `;
+                bookingListDiv.appendChild(card);
+            });
+            // Tambahkan event listener untuk tombol batalkan
+            document.querySelectorAll('.btn-cancel-booking').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    if (!confirm('Yakin ingin membatalkan pemesanan ini?')) return;
+                    const bookingId = this.getAttribute('data-booking-id');
+                    try {
+                        const res = await fetch('api_cancel_booking.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ booking_id: bookingId })
+                        });
+                        const resData = await res.json();
+                        alert(resData.message);
+                        fetchAndRenderBookings();
+                    } catch (err) {
+                        alert('Gagal membatalkan pemesanan.');
+                    }
+                });
+            });
+        } catch (err) {
+            bookingListDiv.innerHTML = '<div class="text-center text-red-500">Gagal memuat riwayat pemesanan.</div>';
+        }
+    }
+
+    window.showHistoryPage = function() {
+        // Sembunyikan semua page
+        document.querySelectorAll('.page-content, .page').forEach(page => page.classList.add('hidden'));
+        // Tampilkan history-page
+        const historyPage = document.getElementById('history-page');
+        if (historyPage) historyPage.classList.remove('hidden');
+        fetchAndRenderBookings();
+        window.location.hash = '#history';
+    };
+
+    // Update header/menu agar link "Pemesanan Saya" hanya muncul saat login
+    function updateHeaderUI() {
+        const authContainer = document.getElementById('auth-button-container');
+        const navHistory = document.getElementById('nav-history');
+        if (currentUser) {
+            authContainer.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <button onclick="navigate('history'); event.preventDefault();" class="flex items-center gap-2 bg-brand-green text-white px-5 py-2 rounded-full shadow-md font-semibold hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-400">
+                        <svg xmlns='http://www.w3.org/2000/svg' class='w-5 h-5 mr-1' fill='none' viewBox='0 0 24 24' stroke='currentColor' stroke-width='2'>
+                            <path stroke-linecap='round' stroke-linejoin='round' d='M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' />
+                        </svg>
+                        Pemesanan Saya
+                    </button>
+                    <span class="font-semibold text-brand-grey">Halo, ${currentUser.name.split(' ')[0]}</span>
+                    <button onclick="handleLogout()" class="bg-red-500 text-white px-6 py-2 rounded-full font-semibold hover:bg-red-600 transition-colors">Logout</button>
+                </div>
+            `;
+            if (navHistory) navHistory.style.display = '';
+        } else {
+            authContainer.innerHTML = `
+                <button onclick="navigate('login')" class="bg-brand-green text-white px-6 py-2 rounded-full font-semibold hover:bg-opacity-90 transition-colors">Login</button>
+            `;
+            if (navHistory) navHistory.style.display = 'none';
+        }
+    }
+
+    function handleRegister(event) {
+        event.preventDefault();
+        const name = event.target.elements.name.value;
+        const email = event.target.elements.email.value;
+        const password = event.target.elements.password.value;
+        if (!name || !email || !password) {
+            alert('Harap isi semua kolom.');
+            return;
+        }
+        apiRegister(name, email, password).then(result => {
+            if (result.success) {
+                alert('Registrasi berhasil! Silakan login.');
+                switchAuthForm('login');
+            } else {
+                alert(result.message || 'Registrasi gagal.');
+            }
+        }).catch(() => {
+            alert('Registrasi gagal.');
+        });
+    }
+
+    function handleLogin(event) {
+        event.preventDefault();
+        const email = event.target.elements.email.value;
+        const password = event.target.elements.password.value;
+        apiLogin(email, password).then(result => {
+            if (result.success && result.user) {
+                currentUser = result.user;
+                sessionStorage.setItem('sojournUser', JSON.stringify(result.user));
+                alert(`Selamat datang kembali, ${currentUser.name}!`);
+                updateHeaderUI();
+                navigate('home');
+            } else {
+                alert(result.message || 'Email atau password salah.');
+            }
+        }).catch(() => {
+            alert('Login gagal.');
+        });
     }
 
     // --- App Inisiation ---

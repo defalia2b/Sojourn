@@ -1,4 +1,5 @@
 <?php
+session_start();
 header('Content-Type: application/json');
 
 $host = 'localhost';
@@ -25,6 +26,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 if ($user = $result->fetch_assoc()) {
     if ($password === $user['password']) {
+        $_SESSION['user_id'] = $user['id'];
         unset($user['password']);
         echo json_encode(['success' => true, 'user' => $user]);
     } else {

@@ -263,3 +263,5 @@ INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_ga
 (5, 'Kamar Single', 450000.00, 8, 'img/hotel_room/1.png'),
 (5, 'Kamar Double', 700000.00, 12, 'img/hotel_room/1.png'),
 (5, 'Kamar Keluarga', 1300000.00, 0, 'img/hotel_room/1.png');
+
+ALTER TABLE `bookings` ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'confirmed' AFTER `total_price`; 
