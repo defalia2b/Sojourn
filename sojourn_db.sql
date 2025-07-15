@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS `bookings` (
     `checkin_date` DATE NOT NULL,
     `checkout_date` DATE NOT NULL,
     `total_price` INT NOT NULL,
+    `guests` INT NOT NULL DEFAULT 1 COMMENT 'Jumlah tamu',
+    `special_requests` TEXT COMMENT 'Permintaan khusus dari tamu',
     `status` ENUM('confirmed', 'cancelled', 'finished') NOT NULL DEFAULT 'confirmed',
     `booking_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,

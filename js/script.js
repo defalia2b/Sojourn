@@ -490,8 +490,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data.success) { navigate('home'); return; }
         const hotel = data.hotel;
         
-        // Galeri foto: ambil dari image_gallery semua tipe kamar, fallback ke hotel.image
+        // Galeri foto: gunakan hotel.image sebagai foto utama, lalu tambahkan dari image_gallery semua tipe kamar
         let gallery = [];
+        // Tambahkan hotel.image sebagai foto utama jika ada
+        if (hotel.image) {
+            gallery.push(hotel.image);
+        }
+        // Tambahkan gambar dari room_types
         if (hotel.room_types && hotel.room_types.length > 0) {
             hotel.room_types.forEach(rt => {
                 if (rt.image_gallery) {
@@ -499,7 +504,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        if (gallery.length === 0 && hotel.image) gallery = [hotel.image];
+        // Jika tidak ada gambar sama sekali, gunakan placeholder
+        if (gallery.length === 0) {
+            gallery = ['https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop'];
+        }
         
         // Harga mulai
         let minRoomPrice = null;
@@ -823,39 +831,189 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         let totalNights = 1;
         let totalPrice = (selectedRoom ? selectedRoom.price : hotel.price) * 1.1;
+        
+        // Set tanggal minimum untuk check-in (hari ini)
+        const today = new Date().toISOString().split('T')[0];
+        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
         document.getElementById('booking-form-content').innerHTML = `
             <div class="lg:col-span-2">
-                <h3 class="text-2xl font-bold text-brand-black mb-6">Isi Data Pemesanan</h3>
-                <form id="booking-form" class="bg-white p-8 rounded-2xl shadow-lg space-y-4">
-                    <div><label class="font-semibold">Nama Lengkap</label><input type="text" value="${currentUser.name}" required class="form-input mt-1 bg-gray-100" readonly></div>
-                    <div><label class="font-semibold">Alamat Email</label><input type="email" value="${currentUser.email}" required class="form-input mt-1 bg-gray-100" readonly></div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div><label class="font-semibold">Tanggal Check-in</label><input type="date" id="checkin-date" required class="form-input mt-1"></div>
-                        <div><label class="font-semibold">Tanggal Check-out</label><input type="date" id="checkout-date" required class="form-input mt-1"></div>
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <!-- Header Booking -->
+                    <div class="bg-gradient-to-r from-brand-green to-green-600 text-white p-6">
+                        <h3 class="text-2xl font-bold mb-2">Lengkapi Data Pemesanan</h3>
+                        <p class="text-green-100">Pastikan semua informasi terisi dengan benar</p>
                     </div>
-                    <div><label class="font-semibold">Jumlah Tamu</label><input type="number" name="guests" value="1" min="1" max="5" required class="form-input mt-1"></div>
-                    <button type="submit" class="w-full bg-brand-green text-white py-3 rounded-lg font-bold text-lg mt-4">Lanjutkan ke Pembayaran</button>
-                </form>
+                    
+                    <!-- Form Content -->
+                    <div class="p-8">
+                        <form id="booking-form" class="space-y-6">
+                            <!-- Informasi Tamu -->
+                            <div class="border-b border-gray-200 pb-6">
+                                <h4 class="text-lg font-semibold text-brand-black mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                    </svg>
+                                    Informasi Tamu
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Nama Lengkap</label>
+                                        <input type="text" value="${currentUser.name}" required class="form-input bg-gray-50 border-gray-300" readonly>
+                                        <p class="text-xs text-gray-500 mt-1">Data diambil dari profil Anda</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                        <input type="email" value="${currentUser.email}" required class="form-input bg-gray-50 border-gray-300" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tanggal Menginap -->
+                            <div class="border-b border-gray-200 pb-6">
+                                <h4 class="text-lg font-semibold text-brand-black mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    Tanggal Menginap
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Check-in</label>
+                                        <input type="date" id="checkin-date" required class="form-input" min="${today}">
+                                        <p class="text-xs text-gray-500 mt-1">Check-in mulai pukul 14:00</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Check-out</label>
+                                        <input type="date" id="checkout-date" required class="form-input" min="${tomorrow}">
+                                        <p class="text-xs text-gray-500 mt-1">Check-out hingga pukul 12:00</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Jumlah Tamu -->
+                            <div class="border-b border-gray-200 pb-6">
+                                <h4 class="text-lg font-semibold text-brand-black mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                    Jumlah Tamu
+                                </h4>
+                                <div class="flex items-center space-x-4">
+                                    <label class="block text-sm font-medium text-gray-700">Dewasa & Anak-anak:</label>
+                                    <div class="flex items-center border border-gray-300 rounded-lg">
+                                        <button type="button" id="guest-decrease" class="px-3 py-2 text-gray-600 hover:text-brand-green transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
+                                            </svg>
+                                        </button>
+                                        <input type="number" name="guests" value="1" min="1" max="6" required class="w-16 text-center border-0 focus:ring-0">
+                                        <button type="button" id="guest-increase" class="px-3 py-2 text-gray-600 hover:text-brand-green transition-colors">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-2">Maksimal 6 tamu per kamar</p>
+                            </div>
+
+                            <!-- Special Requests -->
+                            <div>
+                                <h4 class="text-lg font-semibold text-brand-black mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Permintaan Khusus (Opsional)
+                                </h4>
+                                <textarea name="special_requests" rows="3" placeholder="Contoh: Kamar dengan pemandangan kota, tempat tidur tambahan, atau permintaan khusus lainnya..." class="form-input resize-none"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
+            
             <div class="lg:col-span-1">
-                <h3 class="text-2xl font-bold text-brand-black mb-6">Ringkasan Pesanan</h3>
-                <div class="bg-white p-6 rounded-2xl shadow-lg">
-                    <img src="${selectedRoom && selectedRoom.image_gallery ? selectedRoom.image_gallery.split(',')[0].trim() : hotel.image}" class="w-full h-40 object-cover rounded-lg mb-4">
-                    <h4 class="text-xl font-bold">${hotel.name}</h4>
-                    <p class="text-brand-grey">${hotel.location}</p>
-                    ${selectedRoom ? `<div class='mt-2 mb-2'><span class='font-semibold'>Tipe Kamar:</span> ${selectedRoom.name}</div>` : ''}
-                    <div class="border-t my-4"></div>
-                    <div class="flex justify-between"><p>Harga per malam</p><p class="font-semibold" id="harga-per-malam">${formatCurrency(selectedRoom ? selectedRoom.price : hotel.price)}</p></div>
-                    <div class="flex justify-between mt-2"><p>Pajak & Layanan (10%)</p><p class="font-semibold" id="pajak">${formatCurrency((selectedRoom ? selectedRoom.price : hotel.price) * 0.1)}</p></div>
-                    <div class="flex justify-between mt-2"><p>Jumlah Malam</p><p class="font-semibold" id="jumlah-malam">${totalNights}</p></div>
-                    <div class="border-t my-4"></div>
-                    <div class="flex justify-between text-xl font-bold"><p>Total</p><p id="total-harga">${formatCurrency(totalPrice)}</p></div>
+                <!-- Ringkasan Pesanan -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden sticky top-24">
+                    <div class="bg-gradient-to-r from-brand-green to-green-600 text-white p-6">
+                        <h3 class="text-xl font-bold mb-2">Ringkasan Pesanan</h3>
+                        <p class="text-green-100">Detail biaya dan informasi</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <!-- Hotel Info -->
+                        <div class="flex items-start space-x-4 mb-6">
+                            <img src="${selectedRoom && selectedRoom.image_gallery ? selectedRoom.image_gallery.split(',')[0].trim() : hotel.image}" class="w-20 h-20 object-cover rounded-lg flex-shrink-0">
+                            <div class="flex-1">
+                                <h4 class="font-bold text-lg text-brand-black">${hotel.name}</h4>
+                                <p class="text-brand-grey text-sm">${hotel.location}</p>
+                                ${selectedRoom ? `<p class="text-brand-green font-medium text-sm mt-1">${selectedRoom.name}</p>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Detail Biaya -->
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Harga per malam</span>
+                                <span class="font-semibold" id="harga-per-malam">${formatCurrency(selectedRoom ? selectedRoom.price : hotel.price)}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Jumlah malam</span>
+                                <span class="font-semibold" id="jumlah-malam">${totalNights}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Subtotal</span>
+                                <span class="font-semibold" id="subtotal">${formatCurrency((selectedRoom ? selectedRoom.price : hotel.price) * totalNights)}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Pajak & Layanan (10%)</span>
+                                <span class="font-semibold" id="pajak">${formatCurrency((selectedRoom ? selectedRoom.price : hotel.price) * totalNights * 0.1)}</span>
+                            </div>
+                            <div class="border-t pt-3">
+                                <div class="flex justify-between items-center text-lg font-bold text-brand-black">
+                                    <span>Total Pembayaran</span>
+                                    <span id="total-harga">${formatCurrency(totalPrice)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informasi Penting -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <h5 class="font-semibold text-blue-800 mb-2 flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Informasi Penting
+                            </h5>
+                            <ul class="text-sm text-blue-700 space-y-1">
+                                <li>• Pembayaran aman dengan enkripsi SSL</li>
+                                <li>• Pembatalan gratis hingga 24 jam sebelum check-in</li>
+                                <li>• Konfirmasi booking akan dikirim via email</li>
+                            </ul>
+                        </div>
+
+                        <!-- Tombol Booking -->
+                        <button type="submit" form="booking-form" class="w-full bg-brand-green text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-200">
+                            <div class="flex items-center justify-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                                Lanjutkan ke Pembayaran
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
+
         // Update harga otomatis saat tanggal diubah
         const checkinInput = document.getElementById('checkin-date');
         const checkoutInput = document.getElementById('checkout-date');
+        const guestInput = document.querySelector('input[name="guests"]');
+        const guestDecrease = document.getElementById('guest-decrease');
+        const guestIncrease = document.getElementById('guest-increase');
+
         function updateSummary() {
             const checkin = checkinInput.value;
             const checkout = checkoutInput.value;
@@ -867,12 +1025,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (nights < 1) nights = 1;
             }
             totalNights = nights;
-            totalPrice = (selectedRoom ? selectedRoom.price : hotel.price) * totalNights * 1.1;
+            const subtotal = (selectedRoom ? selectedRoom.price : hotel.price) * totalNights;
+            const tax = subtotal * 0.1;
+            totalPrice = subtotal + tax;
+            
             document.getElementById('jumlah-malam').textContent = totalNights;
+            document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('pajak').textContent = formatCurrency(tax);
             document.getElementById('total-harga').textContent = formatCurrency(totalPrice);
         }
+
+        // Event listeners
         checkinInput.addEventListener('change', updateSummary);
         checkoutInput.addEventListener('change', updateSummary);
+        
+        // Guest counter
+        guestDecrease.addEventListener('click', () => {
+            const currentValue = parseInt(guestInput.value);
+            if (currentValue > 1) {
+                guestInput.value = currentValue - 1;
+            }
+        });
+        
+        guestIncrease.addEventListener('click', () => {
+            const currentValue = parseInt(guestInput.value);
+            if (currentValue < 6) {
+                guestInput.value = currentValue + 1;
+            }
+        });
+
+        // Set default dates
+        checkinInput.value = today;
+        checkoutInput.value = tomorrow;
+        updateSummary();
+
         document.getElementById('booking-form').addEventListener('submit', (e) => handleBooking(e, hotel.id, totalNights, totalPrice));
     }
 
@@ -882,6 +1068,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const checkin = event.target.elements['checkin-date'].value;
         const checkout = event.target.elements['checkout-date'].value;
         const guests = event.target.elements['guests'].value;
+        const specialRequests = event.target.elements['special_requests']?.value || '';
+        
         // Validasi tanggal
         if (!checkin || !checkout) {
             alert('Tanggal check-in dan check-out harus diisi.');
@@ -893,14 +1081,37 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Tanggal check-out harus setelah check-in.');
             return;
         }
+        
+        // Validasi jumlah tamu
+        if (guests < 1 || guests > 6) {
+            alert('Jumlah tamu harus antara 1-6 orang.');
+            return;
+        }
+        
         const bookingData = {
             user_id: currentUser.id,
             hotel_id: hotel.id,
             check_in_date: checkin,
             check_out_date: checkout,
             total_price: Math.round(totalPrice),
-            guests
+            guests,
+            special_requests: specialRequests
         };
+        
+        // Tampilkan loading state
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = `
+            <div class="flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Memproses Pemesanan...
+            </div>
+        `;
+        submitButton.disabled = true;
+        
         apiCreateBooking(bookingData).then(result => {
             if (result.success) {
                 const bookingInfo = {
@@ -908,31 +1119,170 @@ document.addEventListener('DOMContentLoaded', () => {
                     checkin,
                     checkout,
                     totalPrice: formatCurrency(totalPrice),
-                    bookingId: result.booking_id || `SOJ-${Date.now()}`
+                    bookingId: result.booking_id || `SOJ-${Date.now()}`,
+                    guests,
+                    specialRequests
                 };
                 navigate('confirmation', bookingInfo);
             } else {
                 alert(result.message || 'Pemesanan gagal.');
+                // Reset button
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
             }
         }).catch(() => {
             alert('Pemesanan gagal.');
+            // Reset button
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
         });
     }
 
     function renderConfirmation(bookingData) {
         document.getElementById('confirmation-content').innerHTML = `
-            <svg class="w-24 h-24 mx-auto text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <h1 class="text-4xl font-bold text-brand-black mt-4">Pemesanan Berhasil!</h1>
-            <p class="text-lg text-brand-grey mt-2">Terima kasih, ${currentUser.name}. Pesanan Anda telah kami konfirmasi.</p>
-            <div class="bg-white p-8 rounded-2xl shadow-lg max-w-2xl mx-auto mt-8 text-left space-y-3">
-                <h3 class="text-xl font-bold text-center mb-4">Detail Pesanan</h3>
-                <div><strong>ID Booking:</strong> ${bookingData.bookingId}</div>
-                <div><strong>Hotel:</strong> ${bookingData.hotelName}</div>
-                <div><strong>Check-in:</strong> ${bookingData.checkin}</div>
-                <div><strong>Check-out:</strong> ${bookingData.checkout}</div>
-                <div class="border-t pt-3 mt-3 font-bold text-lg flex justify-between"><span>Total Pembayaran:</span><span>${bookingData.totalPrice}</span></div>
+            <div class="max-w-4xl mx-auto">
+                <!-- Success Header -->
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h1 class="text-4xl font-bold text-brand-black mb-2">Pemesanan Berhasil!</h1>
+                    <p class="text-lg text-brand-grey">Terima kasih, ${currentUser.name}. Pesanan Anda telah kami konfirmasi.</p>
+                </div>
+
+                <!-- Booking Details Card -->
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+                    <div class="bg-gradient-to-r from-brand-green to-green-600 text-white p-6">
+                        <h2 class="text-2xl font-bold mb-2">Detail Pemesanan</h2>
+                        <p class="text-green-100">Booking ID: ${bookingData.bookingId}</p>
+                    </div>
+                    
+                    <div class="p-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Hotel Information -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-brand-black mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    Informasi Hotel
+                                </h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <span class="text-gray-600 text-sm">Hotel</span>
+                                        <p class="font-semibold text-brand-black">${bookingData.hotelName}</p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <span class="text-gray-600 text-sm">Check-in</span>
+                                            <p class="font-semibold text-brand-black">${bookingData.checkin}</p>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-600 text-sm">Check-out</span>
+                                            <p class="font-semibold text-brand-black">${bookingData.checkout}</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 text-sm">Jumlah Tamu</span>
+                                        <p class="font-semibold text-brand-black">${bookingData.guests} orang</p>
+                                    </div>
+                                    ${bookingData.specialRequests ? `
+                                    <div>
+                                        <span class="text-gray-600 text-sm">Permintaan Khusus</span>
+                                        <p class="text-brand-black">${bookingData.specialRequests}</p>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <!-- Payment Information -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-brand-black mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                    </svg>
+                                    Informasi Pembayaran
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600">Total Pembayaran</span>
+                                        <span class="text-2xl font-bold text-brand-black">${bookingData.totalPrice}</span>
+                                    </div>
+                                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <h4 class="font-semibold text-green-800 mb-2 flex items-center">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            Pembayaran Berhasil
+                                        </h4>
+                                        <p class="text-sm text-green-700">Pembayaran telah diproses dan diterima oleh sistem kami.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Steps -->
+                <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
+                    <h3 class="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Langkah Selanjutnya
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="bg-blue-100 rounded-full p-2">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-blue-800">Email Konfirmasi</h4>
+                                <p class="text-sm text-blue-700">Konfirmasi booking akan dikirim ke email Anda dalam beberapa menit.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div class="bg-blue-100 rounded-full p-2">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-blue-800">Check-in</h4>
+                                <p class="text-sm text-blue-700">Check-in tersedia mulai pukul 14:00 pada tanggal yang dipilih.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <div class="bg-blue-100 rounded-full p-2">
+                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-blue-800">Riwayat Booking</h4>
+                                <p class="text-sm text-blue-700">Lihat semua pemesanan Anda di halaman riwayat booking.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button onclick="navigate('history')" class="bg-brand-green text-white px-8 py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
+                        </svg>
+                        Lihat Riwayat Booking
+                    </button>
+                    <button onclick="navigate('home')" class="bg-gray-100 text-brand-black px-8 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors">
+                        Kembali ke Halaman Utama
+                    </button>
+                </div>
             </div>
-            <button onclick="navigate('home')" class="mt-8 bg-brand-green text-white px-8 py-3 rounded-full font-semibold hover:bg-opacity-90">Kembali ke Halaman Utama</button>
         `;
     }
 
@@ -1098,9 +1448,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Riwayat Pemesanan ---
     async function fetchAndRenderBookings() {
-        console.log('fetchAndRenderBookings called');
+        if (!currentUser) {
+            navigate('login');
+            return;
+        }
+        
         const bookingListDiv = document.getElementById('booking-list');
-        bookingListDiv.innerHTML = '<div class="text-center">Memuat riwayat pemesanan...</div>';
+        bookingListDiv.innerHTML = `
+            <div class="col-span-full text-center py-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </div>
+                <p class="text-gray-600">Memuat riwayat pemesanan...</p>
+            </div>
+        `;
+        
         // Ambil daftar hotel yang sudah direview user login
         window.userReviewedHotels = {};
         let uid = currentUser && currentUser.id;
@@ -1115,61 +1479,134 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (e) {}
         }
+        
         try {
             const response = await fetch('api_get_my_bookings.php', { credentials: 'include' });
             const data = await response.json();
             if (!data.success) throw new Error(data.message || 'Gagal mengambil data pemesanan');
             const bookings = data.bookings || [];
+            
             if (bookings.length === 0) {
-                bookingListDiv.innerHTML = '<div class="text-center">Belum ada riwayat pemesanan.</div>';
+                bookingListDiv.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <div class="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-4">
+                            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-600 mb-2">Belum ada pemesanan</h3>
+                        <p class="text-gray-500 mb-6">Anda belum memiliki riwayat pemesanan hotel.</p>
+                        <button onclick="navigate('search')" class="bg-brand-green text-white px-8 py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors">
+                            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            Mulai Pencarian Hotel
+                        </button>
+                    </div>
+                `;
                 return;
             }
-            bookingListDiv.innerHTML = '';
-            bookings.forEach(booking => {
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-lg shadow p-6 mb-4 flex flex-col gap-2';
-                // Hitung jumlah hari
-                let daysText = '';
-                if (booking.check_in && booking.check_out) {
-                    const d1 = new Date(booking.check_in);
-                    const d2 = new Date(booking.check_out);
-                    const diff = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
-                    if (!isNaN(diff) && diff > 0) {
-                        daysText = diff + ' hari';
-                    }
-                }
-                let actionButtons = '';
-                const today = new Date().toISOString().slice(0, 10);
-                // Cek apakah user sudah review hotel ini
-                let sudahReview = false;
-                if (window.userReviewedHotels && window.userReviewedHotels[booking.hotel_id]) {
-                    sudahReview = true;
-                }
-                if (booking.status === 'confirmed') {
-                    if (booking.check_out && booking.check_out <= today) {
-                        actionButtons += `<button class="btn-finish-booking bg-blue-500 text-white px-4 py-2 rounded mt-2" data-booking-id="${booking.id}">Selesaikan</button>`;
-                    } else {
-                        actionButtons += `<button class="btn-cancel-booking bg-red-500 text-white px-4 py-2 rounded mt-2" data-booking-id="${booking.id}">Batalkan Pemesanan</button>`;
-                    }
-                } else if (booking.status === 'finished') {
-                    if (sudahReview) {
-                        actionButtons += `<span class="inline-block bg-gray-200 text-gray-600 px-4 py-2 rounded mt-2 font-semibold">Sudah Review</span>`;
-                    } else {
-                        actionButtons += `<button class="btn-review-booking bg-green-600 text-white px-4 py-2 rounded mt-2" data-hotel-id="${booking.hotel_id}" data-booking-id="${booking.id}">Beri Review</button>`;
-                    }
-                }
-                card.innerHTML = `
-                    <img src="${booking.hotel_image || 'img/hotels/default.png'}" alt="${booking.hotel_name}" class="w-20 h-20 object-cover rounded-lg border">
-                    <div class="font-bold text-lg">${booking.hotel_name}</div>
-                    <div class="text-sm text-gray-500">${daysText}${daysText && booking.guests ? ' | ' : ''}${booking.room_type && booking.room_type !== '-' ? booking.room_type : ''}${booking.guests ? (daysText ? '' : '') + (booking.room_type && booking.room_type !== '-' ? ' | ' : '') + booking.guests + ' tamu' : ''}</div>
-                    <div class="text-sm">Check-in: <b>${booking.check_in || '-'}</b></div>
-                    <div class="text-sm">Check-out: <b>${booking.check_out || '-'}</b></div>
-                    <div class="text-sm">Total Harga: <b>${formatCurrency(booking.total_price)}</b></div>
-                    <div class="text-sm">Status: <span class="font-semibold ${booking.status === 'cancelled' ? 'text-red-500' : 'text-green-600'}">${booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span></div>
-                    ${actionButtons}
-                `;
-                bookingListDiv.appendChild(card);
-            });
+            
+            bookingListDiv.innerHTML = bookings.map(booking => `
+                <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                    <div class="relative">
+                        <img src="${booking.hotel_image || 'img/hotels/default.png'}" class="w-full h-48 object-cover">
+                        <div class="absolute top-4 right-4">
+                            <span class="bg-${booking.status_color}-100 text-${booking.status_color}-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                ${booking.status_display}
+                            </span>
+                        </div>
+                        <div class="absolute bottom-4 left-4">
+                            <div class="flex items-center bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                                </svg>
+                                <span class="text-sm font-semibold">${booking.star_rating || 5}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-4">
+                            <h3 class="text-xl font-bold text-brand-black mb-1">${booking.hotel_name}</h3>
+                            <p class="text-brand-grey text-sm flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                ${booking.hotel_location}
+                            </p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <div class="flex items-center mb-1">
+                                    <svg class="w-4 h-4 mr-2 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span class="text-sm font-medium text-gray-600">Check-in</span>
+                                </div>
+                                <p class="font-semibold text-brand-black">${booking.check_in}</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <div class="flex items-center mb-1">
+                                    <svg class="w-4 h-4 mr-2 text-brand-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <span class="text-sm font-medium text-gray-600">Check-out</span>
+                                </div>
+                                <p class="font-semibold text-brand-black">${booking.check_out}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Jumlah Tamu:</span>
+                                <span class="font-semibold">${booking.guests} orang</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Durasi:</span>
+                                <span class="font-semibold">${booking.nights} malam</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Total Pembayaran:</span>
+                                <span class="font-bold text-lg text-brand-black">${formatCurrency(booking.total_price)}</span>
+                            </div>
+                        </div>
+                        
+                        ${booking.special_requests ? `
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 mr-2 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-medium text-blue-800 mb-1">Permintaan Khusus</p>
+                                    <p class="text-sm text-blue-700">${booking.special_requests}</p>
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="flex gap-2">
+                            <button onclick="navigate('detail', ${booking.hotel_id})" class="flex-1 bg-brand-green text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                Lihat Hotel
+                            </button>
+                            ${booking.status === 'confirmed' ? `
+                            <button onclick="cancelBooking('${booking.id}')" class="flex-1 bg-red-500 text-white py-3 rounded-xl font-semibold hover:bg-red-600 transition-colors flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                Batalkan
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
             // Handle cancel
             document.querySelectorAll('.btn-cancel-booking').forEach(btn => {
                 btn.onclick = async function() {
@@ -1183,6 +1620,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fetchAndRenderBookings();
                 };
             });
+            
             // Handle finish
             document.querySelectorAll('.btn-finish-booking').forEach(btn => {
                 btn.onclick = async function() {
@@ -1196,16 +1634,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     fetchAndRenderBookings();
                 };
             });
+            
             // Handle review
             document.querySelectorAll('.btn-review-booking').forEach(btn => {
                 btn.onclick = function() {
                     const hotelId = this.getAttribute('data-hotel-id');
-                    // Panggil modal/tampilan review, pastikan hanya bisa review jika status finished
                     showReviewModal(hotelId);
                 };
             });
+            
         } catch (err) {
-            bookingListDiv.innerHTML = '<div class="text-center text-red-500">Gagal memuat riwayat pemesanan.</div>';
+            bookingListDiv.innerHTML = `
+                <div class="col-span-full text-center py-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-red-600 mb-2">Gagal memuat data</h3>
+                    <p class="text-gray-500">Terjadi kesalahan saat memuat riwayat pemesanan.</p>
+                </div>
+            `;
         }
     }
 
