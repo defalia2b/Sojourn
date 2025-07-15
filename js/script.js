@@ -489,6 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await response.json();
         if (!data.success) { navigate('home'); return; }
         const hotel = data.hotel;
+        
         // Galeri foto: ambil dari image_gallery semua tipe kamar, fallback ke hotel.image
         let gallery = [];
         if (hotel.room_types && hotel.room_types.length > 0) {
@@ -499,13 +500,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         if (gallery.length === 0 && hotel.image) gallery = [hotel.image];
+        
         // Harga mulai
         let minRoomPrice = null;
         if (hotel.room_types && hotel.room_types.length > 0) {
             minRoomPrice = Math.min(...hotel.room_types.map(rt => parseFloat(rt.price)));
         }
+        
         // Fasilitas
-        const fasilitasHTML = hotel.facilities.map(f => `<span class='bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full mr-1 mb-1 inline-block'>${f.name}</span>`).join('');
+        const fasilitasHTML = hotel.facilities.map(f => `<span class='bg-green-100 text-green-800 text-xs font-semibold px-3 py-2 rounded-full mr-2 mb-2 inline-block'>${f.name}</span>`).join('');
+        
         // Tipe kamar - Modern Card Grid
         let roomTypes = hotel.room_types ? [...hotel.room_types] : [];
         // Pisahkan yang sold out
@@ -514,21 +518,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // Gabungkan, yang sold out di belakang
         const sortedRooms = [...availableRooms, ...soldOutRooms];
         const roomTypesHTML = sortedRooms.length > 0 ?
-            `<div class='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6'>` +
+            `<div class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>` +
             sortedRooms.map(rt => {
                 const isSoldOut = parseInt(rt.availability) === 0;
-                const images = rt.image_gallery ? rt.image_gallery.split(',').slice(0, 1).map(img => `<img src='${img.trim()}' class='w-28 h-20 object-cover rounded-lg mx-auto mb-2'>`).join('') : '';
+                const images = rt.image_gallery ? rt.image_gallery.split(',').slice(0, 1).map(img => `<img src='${img.trim()}' class='w-full h-48 object-cover rounded-t-xl'>`).join('') : '';
                 return `
-                <div class='bg-white border rounded-2xl shadow-md p-4 flex flex-col items-center relative ${isSoldOut ? 'opacity-60' : 'hover:shadow-xl transition-shadow duration-300'}'>
-                    ${images || `<div class='w-28 h-20 bg-gray-200 rounded-lg flex items-center justify-center mb-2 text-gray-400'>No Image</div>`}
-                    <div class='font-bold text-lg text-center mb-1'>${rt.name}</div>
-                    <div class='text-brand-green font-semibold mb-1 text-center'>${formatCurrency(rt.price)}</div>
-                    <div class='text-xs text-gray-500 mb-2 text-center'>Tersedia: ${rt.availability}</div>
-                    <button class='w-full py-2 rounded-lg font-semibold mt-2 ${isSoldOut ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-brand-green text-white hover:bg-green-700'}' ${isSoldOut ? 'disabled' : `onclick=\"navigate('booking', {hotelId: ${hotel.id}, roomTypeId: ${rt.id}})\"`}>${isSoldOut ? 'Sold Out' : 'Pesan'}</button>
+                <div class='bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden ${isSoldOut ? 'opacity-60' : ''}'>
+                    ${images || `<div class='w-full h-48 bg-gray-200 rounded-t-xl flex items-center justify-center text-gray-400'><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div>`}
+                    <div class='p-6'>
+                        <div class='font-bold text-xl text-gray-900 mb-2'>${rt.name}</div>
+                        <div class='text-brand-green font-bold text-2xl mb-3'>${formatCurrency(rt.price)}</div>
+                        <div class='text-sm text-gray-600 mb-4'>Tersedia: ${rt.availability} kamar</div>
+                        <button class='w-full py-3 rounded-lg font-semibold transition-colors duration-200 ${isSoldOut ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-brand-green text-white hover:bg-green-700'}' ${isSoldOut ? 'disabled' : `onclick=\"navigate('booking', {hotelId: ${hotel.id}, roomTypeId: ${rt.id}})\"`}>${isSoldOut ? 'Sold Out' : 'Pesan Sekarang'}</button>
+                    </div>
                 </div>
                 `;
             }).join('') + `</div>`
-            : '<div class="text-gray-400">Tidak ada tipe kamar tersedia.</div>';
+            : '<div class="text-gray-400 text-center py-8">Tidak ada tipe kamar tersedia.</div>';
+        
         // Ulasan
         function capitalize(str) {
             if (!str) return '';
@@ -537,57 +544,186 @@ document.addEventListener('DOMContentLoaded', () => {
         const avgRating = hotel.avg_review_rating !== null && hotel.avg_review_rating !== undefined ? parseFloat(hotel.avg_review_rating).toFixed(1) : '-';
         const reviewCount = hotel.review_count || 0;
         const ratingLabel = hotel.avg_review_rating !== null && hotel.avg_review_rating !== undefined ? capitalize(getRatingLabel(hotel.avg_review_rating)) : '-';
+        
         // Star rating
-        const starHTML = `<span class='text-yellow-500'>${'★'.repeat(hotel.star_rating)}</span>`;
-        // Render
+        const starHTML = `<span class='text-yellow-500 text-xl'>${'★'.repeat(hotel.star_rating)}</span>`;
+        
+        // Render modern hotel detail page
         document.getElementById('hotel-detail-content').innerHTML = `
-            <button onclick="navigate('search')" class="mb-8 bg-gray-200 text-gray-800 px-4 py-2 rounded-full font-semibold hover:bg-gray-300">&larr; Kembali ke Pencarian</button>
-            <div class="bg-white rounded-2xl shadow-lg p-8">
-                <div class="grid grid-cols-1 lg:grid-cols-5 gap-12">
-                    <div class="lg:col-span-3">
-                        <!-- Galeri Foto -->
-                        <div class="mb-4">
-                            <img src="${gallery[0]}" class="w-full h-72 object-cover rounded-xl mb-2 shadow" alt="Foto utama hotel">
-                            <div class="flex gap-2">
-                                ${gallery.slice(1,5).map(img => `<img src="${img}" class="w-20 h-14 object-cover rounded shadow">`).join('')}
+            <!-- Breadcrumb -->
+            <nav class="mb-8">
+                <button onclick="navigate('search')" class="text-gray-600 hover:text-brand-green transition-colors duration-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Kembali ke Pencarian
+                </button>
+            </nav>
+
+            <!-- Hotel Header Section -->
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
+                <!-- Hero Image Gallery -->
+                <div class="relative h-96 bg-gray-200">
+                    ${gallery.length > 0 ? `
+                        <img src="${gallery[0]}" class="w-full h-full object-cover" alt="${hotel.name}">
+                        <div class="absolute bottom-4 left-4 right-4 flex gap-2">
+                            ${gallery.slice(1, 5).map(img => `<img src="${img}" class="w-16 h-12 object-cover rounded-lg border-2 border-white shadow-md">`).join('')}
+                        </div>
+                    ` : `
+                        <div class="w-full h-full flex items-center justify-center text-gray-400">
+                            <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    `}
+                </div>
+                
+                <!-- Hotel Info Header -->
+                <div class="p-8">
+                    <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-3">
+                                ${starHTML}
+                                <span class="text-gray-600">${hotel.star_rating} Bintang</span>
+                            </div>
+                            <h1 class="text-4xl font-bold text-gray-900 mb-3">${hotel.name}</h1>
+                            <div class="flex items-center gap-4 text-gray-600 mb-4">
+                                <div class="flex items-center gap-1">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    <span>${hotel.location || 'Lokasi tidak tersedia'}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Rating & Reviews -->
+                            <div class="flex items-center gap-4 mb-6">
+                                <div class="flex items-center gap-2">
+                                    <div class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                        ${avgRating}/10
+                                    </div>
+                                    <span class="text-sm text-gray-600">${ratingLabel}</span>
+                                    <span class="text-sm text-gray-500">(${reviewCount} ulasan)</span>
+                                </div>
+                                <button class="text-brand-green hover:text-green-700 text-sm font-medium underline" onclick="showAllReviews(${hotel.id})">
+                                    Lihat semua ulasan
+                                </button>
                             </div>
                         </div>
-                        <!-- Deskripsi -->
-                        <h1 class="text-4xl font-bold text-brand-black mb-2">${hotel.name}</h1>
-                        <div class="flex items-center gap-3 mb-2">${starHTML}</div>
-                        <div class="flex flex-col items-start mb-4">
-                            <span class="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Mulai dari</span>
-                            <span class="text-3xl font-bold text-brand-green leading-tight">${minRoomPrice ? formatCurrency(minRoomPrice) : '-'}</span>
-                            <span class="text-xs text-brand-grey font-normal">/ malam</span>
-                        </div>
-                        <div class="mb-2"><h3 class="font-semibold mb-1">Fasilitas</h3>${fasilitasHTML}</div>
-                        <div class="mt-8">
-                            <h3 class="font-semibold mb-2">Deskripsi</h3>
-                            <div class="mb-4 text-gray-700">${hotel.description || '-'}</div>
-                        </div>
-                        <div class="mt-8">
-                            <h3 class="font-semibold mb-2">Tipe Kamar</h3>
-                            ${roomTypesHTML}
+                        
+                        <!-- Price Card -->
+                        <div class="bg-gray-50 rounded-xl p-6 lg:w-80">
+                            <div class="text-center">
+                                <div class="text-sm text-gray-600 mb-1">Mulai dari</div>
+                                <div class="text-3xl font-bold text-brand-green mb-2">${minRoomPrice ? formatCurrency(minRoomPrice) : '-'}</div>
+                                <div class="text-sm text-gray-500 mb-4">per malam</div>
+                                <button onclick="document.getElementById('room-types-section').scrollIntoView({behavior: 'smooth'})" class="w-full bg-brand-green text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200">
+                                    Lihat Kamar Tersedia
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="lg:col-span-2 flex flex-col gap-6">
-                        <div>
-                            <h3 class="font-semibold mb-2">Alamat</h3>
-                            <div class="mb-2 text-gray-700">${hotel.location || '-'}</div>
+                </div>
+            </div>
+
+            <!-- Main Content Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column - Main Content -->
+                <div class="lg:col-span-2 space-y-8">
+                    <!-- Description -->
+                    <div class="bg-white rounded-2xl shadow-lg p-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">Tentang Hotel</h2>
+                        <div class="text-gray-700 leading-relaxed">
+                            ${hotel.description || 'Deskripsi hotel tidak tersedia.'}
                         </div>
+                    </div>
+
+                    <!-- Facilities -->
+                    <div class="bg-white rounded-2xl shadow-lg p-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Fasilitas Hotel</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${hotel.facilities.length > 0 ? fasilitasHTML : '<p class="text-gray-500">Fasilitas tidak tersedia.</p>'}
+                        </div>
+                    </div>
+
+                    <!-- Room Types -->
+                    <div id="room-types-section" class="bg-white rounded-2xl shadow-lg p-8">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Tipe Kamar</h2>
+                        ${roomTypesHTML}
+                    </div>
+                </div>
+
+                <!-- Right Column - Sidebar -->
+                <div class="space-y-6">
+                    <!-- Map -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Lokasi</h3>
                         <div id="hotel-map" class="w-full h-64 rounded-xl border"></div>
-                        <!-- Ulasan -->
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="text-lg font-bold text-brand-black">${avgRating}</span>
-                            <span class="text-gray-500">/ 10</span>
-                            <span class="text-xs text-brand-green font-semibold ml-1">${ratingLabel}</span>
-                            <span class="text-gray-500">(${reviewCount} ulasan)</span>
-                            <button class="text-brand-green underline ml-2" onclick="showAllReviews(${hotel.id})">Lihat semua ulasan</button>
+                        <div class="mt-4 text-sm text-gray-600">
+                            <div class="flex items-start gap-2">
+                                <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span>${hotel.location || 'Alamat tidak tersedia'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Info -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Informasi Cepat</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-sm text-gray-700">Reservasi Instan</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-sm text-gray-700">Check-in 24 Jam</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-sm text-gray-700">Pembayaran Aman</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div class="bg-white rounded-2xl shadow-lg p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Kontak</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                </svg>
+                                <span class="text-sm text-gray-700">+62 21 1234 5678</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                                <span class="text-sm text-gray-700">info@${hotel.name.toLowerCase().replace(/\s+/g, '')}.com</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+        
         // Setelah render konten detail hotel
         if (hotel.latitude && hotel.longitude && document.getElementById('hotel-map')) {
             try {
