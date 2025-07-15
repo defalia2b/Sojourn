@@ -256,6 +256,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function renderSearchBar(containerId, initialQuery = '') {
         const container = document.getElementById(containerId);
+        container.classList.add('search-bar-card'); // Tambahkan class card modern
+        // State untuk tamu
+        let guestState = {
+            dewasa: 2,
+            anak: 0,
+            kamar: 1
+        };
+        function getGuestLabel() {
+            return `${guestState.dewasa} Dewasa, ${guestState.anak} Anak, ${guestState.kamar} Kamar`;
+        }
         container.innerHTML = `
             <div class="search-bar-grid">
                 <div class="search-field">
@@ -270,36 +280,125 @@ document.addEventListener('DOMContentLoaded', () => {
                     <label>Check-out</label>
                     <input type="date" class="form-input-date">
                 </div>
-                <div class="search-field">
+                <div class="search-field" style="position:relative;">
                     <label>Tamu</label>
-                    <div class="flex items-center gap-2">
-                        <button type="button" id="${containerId}-guests-minus" class="bg-gray-200 px-2 py-1 rounded text-lg font-bold">-</button>
-                        <input type="number" id="${containerId}-guests" value="2" min="1" max="10" class="form-input w-16 text-center" style="appearance: textfield;">
-                        <button type="button" id="${containerId}-guests-plus" class="bg-gray-200 px-2 py-1 rounded text-lg font-bold">+</button>
+                    <button type="button" id="${containerId}-guests-label" class="form-input text-left w-full flex items-center justify-between" style="cursor:pointer;">
+                        <span id="${containerId}-guests-label-text">${getGuestLabel()}</span>
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div id="${containerId}-guests-dropdown" class="guests-dropdown" style="display:none;position:absolute;z-index:20;left:0;top:100%;background:#fff;border:1px solid #E5E7EB;border-radius:0.75rem;box-shadow:0 4px 24px 0 rgba(36,171,112,0.08),0 1.5px 6px 0 rgba(0,0,0,0.04);padding:1rem;width:260px;min-width:220px;">
+                        <div class="flex items-center justify-between mb-2">
+                            <span>Dewasa</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="${containerId}-dewasa-minus" class="guest-btn">-</button>
+                                <input type="number" id="${containerId}-dewasa" min="1" max="10" value="2" class="guest-input">
+                                <button type="button" id="${containerId}-dewasa-plus" class="guest-btn">+</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span>Anak</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="${containerId}-anak-minus" class="guest-btn">-</button>
+                                <input type="number" id="${containerId}-anak" min="0" max="10" value="0" class="guest-input">
+                                <button type="button" id="${containerId}-anak-plus" class="guest-btn">+</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Kamar</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="${containerId}-kamar-minus" class="guest-btn">-</button>
+                                <input type="number" id="${containerId}-kamar" min="1" max="10" value="1" class="guest-input">
+                                <button type="button" id="${containerId}-kamar-plus" class="guest-btn">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             <button id="${containerId}-button" class="search-button-main">Cari</button>
         `;
-        // Tambahkan event untuk + dan -
-        const guestsInput = document.getElementById(`${containerId}-guests`);
-        document.getElementById(`${containerId}-guests-minus`).onclick = () => {
-            let val = parseInt(guestsInput.value) || 1;
-            if (val > 1) guestsInput.value = val - 1;
+        // Dropdown logic
+        const labelBtn = document.getElementById(`${containerId}-guests-label`);
+        const dropdown = document.getElementById(`${containerId}-guests-dropdown`);
+        const labelText = document.getElementById(`${containerId}-guests-label-text`);
+        labelBtn.onclick = (e) => {
+            e.stopPropagation();
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
         };
-        document.getElementById(`${containerId}-guests-plus`).onclick = () => {
-            let val = parseInt(guestsInput.value) || 1;
-            if (val < 10) guestsInput.value = val + 1;
+        function closeDropdown(e) {
+            if (!dropdown.contains(e.target) && e.target !== labelBtn) {
+                dropdown.style.display = 'none';
+            }
+        }
+        document.addEventListener('mousedown', closeDropdown);
+        // Dewasa
+        const dewasaInput = document.getElementById(`${containerId}-dewasa`);
+        document.getElementById(`${containerId}-dewasa-minus`).onclick = () => {
+            if (guestState.dewasa > 1) guestState.dewasa--;
+            dewasaInput.value = guestState.dewasa;
+            labelText.textContent = getGuestLabel();
         };
-        guestsInput.addEventListener('input', () => {
-            let val = parseInt(guestsInput.value) || 1;
-            if (val < 1) guestsInput.value = 1;
-            if (val > 10) guestsInput.value = 10;
-        });
+        document.getElementById(`${containerId}-dewasa-plus`).onclick = () => {
+            if (guestState.dewasa < 10) guestState.dewasa++;
+            dewasaInput.value = guestState.dewasa;
+            labelText.textContent = getGuestLabel();
+        };
+        dewasaInput.oninput = () => {
+            let val = parseInt(dewasaInput.value) || 1;
+            if (val < 1) val = 1;
+            if (val > 10) val = 10;
+            guestState.dewasa = val;
+            dewasaInput.value = val;
+            labelText.textContent = getGuestLabel();
+        };
+        // Anak
+        const anakInput = document.getElementById(`${containerId}-anak`);
+        document.getElementById(`${containerId}-anak-minus`).onclick = () => {
+            if (guestState.anak > 0) guestState.anak--;
+            anakInput.value = guestState.anak;
+            labelText.textContent = getGuestLabel();
+        };
+        document.getElementById(`${containerId}-anak-plus`).onclick = () => {
+            if (guestState.anak < 10) guestState.anak++;
+            anakInput.value = guestState.anak;
+            labelText.textContent = getGuestLabel();
+        };
+        anakInput.oninput = () => {
+            let val = parseInt(anakInput.value) || 0;
+            if (val < 0) val = 0;
+            if (val > 10) val = 10;
+            guestState.anak = val;
+            anakInput.value = val;
+            labelText.textContent = getGuestLabel();
+        };
+        // Kamar
+        const kamarInput = document.getElementById(`${containerId}-kamar`);
+        document.getElementById(`${containerId}-kamar-minus`).onclick = () => {
+            if (guestState.kamar > 1) guestState.kamar--;
+            kamarInput.value = guestState.kamar;
+            labelText.textContent = getGuestLabel();
+        };
+        document.getElementById(`${containerId}-kamar-plus`).onclick = () => {
+            if (guestState.kamar < 10) guestState.kamar++;
+            kamarInput.value = guestState.kamar;
+            labelText.textContent = getGuestLabel();
+        };
+        kamarInput.oninput = () => {
+            let val = parseInt(kamarInput.value) || 1;
+            if (val < 1) val = 1;
+            if (val > 10) val = 10;
+            guestState.kamar = val;
+            kamarInput.value = val;
+            labelText.textContent = getGuestLabel();
+        };
+        // Bersihkan event saat container dihapus
+        container._cleanupGuestDropdown = () => {
+            document.removeEventListener('mousedown', closeDropdown);
+        };
+        // Tombol cari
         document.getElementById(`${containerId}-button`).onclick = () => {
             const query = document.getElementById(`${containerId}-location`).value;
-            // Bisa tambahkan pengambilan jumlah tamu jika ingin filter berdasarkan tamu
-            navigate('search', { query });
+            // Kirim data guestState jika ingin filter berdasarkan tamu
+            navigate('search', { query, guests: { ...guestState } });
         };
     }
 
@@ -310,7 +409,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSearchResultsPage(data = {}) {
         const query = data.query || '';
-        renderSearchBar('search-page-bar', query);
+        // Tambahkan wrapper container agar lebar search bar konsisten seperti di home
+        const searchPageBar = document.getElementById('search-page-bar');
+        searchPageBar.innerHTML = '<div class="container mx-auto px-4"><div id="search-page-bar-inner" class="bg-white p-6 rounded-2xl shadow-xl"></div></div>';
+        renderSearchBar('search-page-bar-inner', query);
         setupFilters(); // Pindahkan ke sini
         applyFilters();
     }
