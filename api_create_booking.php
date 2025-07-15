@@ -28,8 +28,9 @@ if ($checkin_date >= $checkout_date) {
     echo json_encode(['success' => false, 'message' => 'Tanggal check-out harus setelah check-in']);
     exit();
 }
-$stmt = $conn->prepare('INSERT INTO bookings (id, user_id, hotel_id, checkin_date, checkout_date, total_price) VALUES (?, ?, ?, ?, ?, ?)');
-$stmt->bind_param('siissi', $booking_id, $user_id, $hotel_id, $checkin_date, $checkout_date, $total_price);
+$stmt = $conn->prepare('INSERT INTO bookings (id, user_id, hotel_id, checkin_date, checkout_date, total_price, status) VALUES (?, ?, ?, ?, ?, ?, ?)');
+$status = 'confirmed';
+$stmt->bind_param('siissis', $booking_id, $user_id, $hotel_id, $checkin_date, $checkout_date, $total_price, $status);
 if ($stmt->execute()) {
     echo json_encode(['success' => true, 'message' => 'Booking berhasil', 'booking_id' => $booking_id]);
 } else {

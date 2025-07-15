@@ -880,12 +880,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 `).join('');
             });
     }
+    window.showAllReviews = showAllReviews;
 
     // --- Riwayat Pemesanan ---
     async function fetchAndRenderBookings() {
         console.log('fetchAndRenderBookings called');
         const bookingListDiv = document.getElementById('booking-list');
         bookingListDiv.innerHTML = '<div class="text-center">Memuat riwayat pemesanan...</div>';
+        // Ambil daftar hotel yang sudah direview user login
+        window.userReviewedHotels = {};
+        let uid = currentUser && currentUser.id;
+        if (uid) {
+            try {
+                const reviewedRes = await fetch('api_get_reviews.php?user_id=' + uid);
+                const reviewedData = await reviewedRes.json();
+                if (reviewedData.success && reviewedData.reviews) {
+                    reviewedData.reviews.forEach(r => {
+                        window.userReviewedHotels[r.hotel_id] = true;
+                    });
+                }
+            } catch (e) {}
+        }
         try {
             const response = await fetch('api_get_my_bookings.php', { credentials: 'include' });
             const data = await response.json();
@@ -909,44 +924,129 @@ document.addEventListener('DOMContentLoaded', () => {
                         daysText = diff + ' hari';
                     }
                 }
+                let actionButtons = '';
+                const today = new Date().toISOString().slice(0, 10);
+                // Cek apakah user sudah review hotel ini
+                let sudahReview = false;
+                if (window.userReviewedHotels && window.userReviewedHotels[booking.hotel_id]) {
+                    sudahReview = true;
+                }
+                if (booking.status === 'confirmed') {
+                    if (booking.check_out && booking.check_out <= today) {
+                        actionButtons += `<button class="btn-finish-booking bg-blue-500 text-white px-4 py-2 rounded mt-2" data-booking-id="${booking.id}">Selesaikan</button>`;
+                    } else {
+                        actionButtons += `<button class="btn-cancel-booking bg-red-500 text-white px-4 py-2 rounded mt-2" data-booking-id="${booking.id}">Batalkan Pemesanan</button>`;
+                    }
+                } else if (booking.status === 'finished') {
+                    if (sudahReview) {
+                        actionButtons += `<span class="inline-block bg-gray-200 text-gray-600 px-4 py-2 rounded mt-2 font-semibold">Sudah Review</span>`;
+                    } else {
+                        actionButtons += `<button class="btn-review-booking bg-green-600 text-white px-4 py-2 rounded mt-2" data-hotel-id="${booking.hotel_id}" data-booking-id="${booking.id}">Beri Review</button>`;
+                    }
+                }
                 card.innerHTML = `
-                    <div class="flex items-center gap-4 mb-2">
-                        <img src="${booking.hotel_image || 'img/hotels/default.png'}" alt="${booking.hotel_name}" class="w-20 h-20 object-cover rounded-lg border">
-                        <div>
-                            <div class="font-bold text-lg">${booking.hotel_name}</div>
-                            <div class="text-sm text-gray-500">${daysText}${daysText && booking.guests ? ' | ' : ''}${booking.room_type && booking.room_type !== '-' ? booking.room_type : ''}${booking.guests ? (daysText ? '' : '') + (booking.room_type && booking.room_type !== '-' ? ' | ' : '') + booking.guests + ' tamu' : ''}</div>
-                        </div>
-                    </div>
+                    <img src="${booking.hotel_image || 'img/hotels/default.png'}" alt="${booking.hotel_name}" class="w-20 h-20 object-cover rounded-lg border">
+                    <div class="font-bold text-lg">${booking.hotel_name}</div>
+                    <div class="text-sm text-gray-500">${daysText}${daysText && booking.guests ? ' | ' : ''}${booking.room_type && booking.room_type !== '-' ? booking.room_type : ''}${booking.guests ? (daysText ? '' : '') + (booking.room_type && booking.room_type !== '-' ? ' | ' : '') + booking.guests + ' tamu' : ''}</div>
                     <div class="text-sm">Check-in: <b>${booking.check_in || '-'}</b></div>
                     <div class="text-sm">Check-out: <b>${booking.check_out || '-'}</b></div>
                     <div class="text-sm">Total Harga: <b>${formatCurrency(booking.total_price)}</b></div>
                     <div class="text-sm">Status: <span class="font-semibold ${booking.status === 'cancelled' ? 'text-red-500' : 'text-green-600'}">${booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span></div>
-                    ${booking.status === 'confirmed' ? `<button class="btn-cancel-booking bg-red-500 text-white px-4 py-2 rounded mt-2" data-booking-id="${booking.id}">Batalkan Pemesanan</button>` : ''}
+                    ${actionButtons}
                 `;
                 bookingListDiv.appendChild(card);
             });
-            // Tambahkan event listener untuk tombol batalkan
+            // Handle cancel
             document.querySelectorAll('.btn-cancel-booking').forEach(btn => {
-                btn.addEventListener('click', async function() {
-                    if (!confirm('Yakin ingin membatalkan pemesanan ini?')) return;
+                btn.onclick = async function() {
                     const bookingId = this.getAttribute('data-booking-id');
-                    try {
-                        const res = await fetch('api_cancel_booking.php', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ booking_id: bookingId })
-                        });
-                        const resData = await res.json();
-                        alert(resData.message);
-                        fetchAndRenderBookings();
-                    } catch (err) {
-                        alert('Gagal membatalkan pemesanan.');
-                    }
-                });
+                    if (!confirm('Yakin ingin membatalkan pemesanan ini?')) return;
+                    const res = await fetch('api_cancel_booking.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ booking_id: bookingId })
+                    });
+                    fetchAndRenderBookings();
+                };
+            });
+            // Handle finish
+            document.querySelectorAll('.btn-finish-booking').forEach(btn => {
+                btn.onclick = async function() {
+                    const bookingId = this.getAttribute('data-booking-id');
+                    if (!confirm('Sudah selesai menginap? Tandai selesai agar bisa review.')) return;
+                    const res = await fetch('api_finish_booking.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ booking_id: bookingId })
+                    });
+                    fetchAndRenderBookings();
+                };
+            });
+            // Handle review
+            document.querySelectorAll('.btn-review-booking').forEach(btn => {
+                btn.onclick = function() {
+                    const hotelId = this.getAttribute('data-hotel-id');
+                    // Panggil modal/tampilan review, pastikan hanya bisa review jika status finished
+                    showReviewModal(hotelId);
+                };
             });
         } catch (err) {
             bookingListDiv.innerHTML = '<div class="text-center text-red-500">Gagal memuat riwayat pemesanan.</div>';
         }
+    }
+
+    function showReviewModal(hotelId) {
+        // Cek jika modal sudah ada, hapus dulu
+        let oldModal = document.getElementById('review-modal');
+        if (oldModal) oldModal.remove();
+        // Buat modal
+        const modal = document.createElement('div');
+        modal.id = 'review-modal';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50';
+        modal.innerHTML = `
+          <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md relative">
+            <button id="close-review-modal" class="absolute top-2 right-2 text-gray-500 hover:text-red-500 text-2xl">&times;</button>
+            <h2 class="text-2xl font-bold mb-4">Beri Review</h2>
+            <form id="review-form" class="space-y-4">
+              <div>
+                <label class="block font-semibold mb-1">Rating</label>
+                <div class="flex items-center gap-3">
+                  <input type="range" min="1" max="10" value="8" name="rating" id="review-rating-slider" class="w-full accent-green-600" />
+                  <span id="review-rating-value" class="text-lg font-bold text-brand-green">8</span>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">Geser untuk memilih rating (1 = buruk, 10 = sempurna)</div>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">Komentar</label>
+                <textarea name="comment" rows="3" class="form-input w-full" placeholder="Tulis pengalaman Anda..."></textarea>
+              </div>
+              <button type="submit" class="w-full bg-brand-green text-white py-3 rounded-lg font-bold text-lg">Kirim Review</button>
+            </form>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('close-review-modal').onclick = () => modal.remove();
+        // Slider rating update
+        const slider = document.getElementById('review-rating-slider');
+        const valueLabel = document.getElementById('review-rating-value');
+        slider.oninput = function() {
+            valueLabel.textContent = this.value;
+        };
+        document.getElementById('review-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const rating = slider.value;
+            const comment = formData.get('comment');
+            const res = await fetch('api_submit_review.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hotel_id: hotelId, rating, comment })
+            });
+            const data = await res.json();
+            alert(data.message || (data.success ? 'Review berhasil dikirim!' : 'Gagal mengirim review.'));
+            modal.remove();
+            fetchAndRenderBookings();
+        };
     }
 
     window.showHistoryPage = function() {
@@ -1036,7 +1136,8 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAuthForms();
         updateHeaderUI();
         showPageBasedOnURL(); // Show the correct page on load
-        // setupFilters(); // HAPUS dari sini
+        // Setelah ambil bookings, fetch daftar hotel yang sudah direview user
+        // window.userReviewedHotels = {}; // HAPUS dari sini
     }
 
     initApp(); // Run the app
