@@ -187,3 +187,8 @@ body {
 #itinerary-result p { margin-bottom: 0.5rem; }
 #itinerary-result a { color: #24AB70; text-decoration: underline; }
 #itinerary-result strong { font-weight: 600; }
+
+/* Footer Section Headings Color */
+#main-footer h3 {
+    color: #34b47c !important;
+}
