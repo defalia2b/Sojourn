@@ -15,24 +15,28 @@ if ($conn->connect_error) {
 // Cek apakah user sudah login
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
+    exit();
 }
 
 $user_id = $_SESSION['user_id'];
 
-// Ambil booking_id dari POST
+// Ambil booking_id dari POST (support JSON and form)
 $data = json_decode(file_get_contents('php://input'), true);
-$booking_id = isset($data['booking_id']) ? intval($data['booking_id']) : 0;
-
+if ($data && isset($data['booking_id'])) {
+    $booking_id = $data['booking_id'];
+} else {
+    $booking_id = isset($_POST['booking_id']) ? $_POST['booking_id'] : '';
+}
+$booking_id = trim($booking_id);
 if (!$booking_id) {
     echo json_encode(['success' => false, 'message' => 'Booking ID tidak valid']);
-    exit;
+    exit();
 }
 
 // Update status booking menjadi 'cancelled' jika milik user dan masih confirmed
 $sql = "UPDATE bookings SET status = 'cancelled' WHERE id = ? AND user_id = ? AND status = 'confirmed'";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param('ii', $booking_id, $user_id);
+$stmt->bind_param('si', $booking_id, $user_id);
 $stmt->execute();
 
 if ($stmt->affected_rows > 0) {

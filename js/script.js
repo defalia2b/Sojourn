@@ -899,16 +899,26 @@ document.addEventListener('DOMContentLoaded', () => {
             bookings.forEach(booking => {
                 const card = document.createElement('div');
                 card.className = 'bg-white rounded-lg shadow p-6 mb-4 flex flex-col gap-2';
+                // Hitung jumlah hari
+                let daysText = '';
+                if (booking.check_in && booking.check_out) {
+                    const d1 = new Date(booking.check_in);
+                    const d2 = new Date(booking.check_out);
+                    const diff = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+                    if (!isNaN(diff) && diff > 0) {
+                        daysText = diff + ' hari';
+                    }
+                }
                 card.innerHTML = `
                     <div class="flex items-center gap-4 mb-2">
                         <img src="${booking.hotel_image || 'img/hotels/default.png'}" alt="${booking.hotel_name}" class="w-20 h-20 object-cover rounded-lg border">
                         <div>
                             <div class="font-bold text-lg">${booking.hotel_name}</div>
-                            <div class="text-sm text-gray-500">${booking.room_type || '-'} | ${booking.guests || 1} tamu</div>
+                            <div class="text-sm text-gray-500">${daysText}${daysText && booking.guests ? ' | ' : ''}${booking.room_type && booking.room_type !== '-' ? booking.room_type : ''}${booking.guests ? (daysText ? '' : '') + (booking.room_type && booking.room_type !== '-' ? ' | ' : '') + booking.guests + ' tamu' : ''}</div>
                         </div>
                     </div>
-                    <div class="text-sm">Check-in: <b>${booking.check_in}</b></div>
-                    <div class="text-sm">Check-out: <b>${booking.check_out}</b></div>
+                    <div class="text-sm">Check-in: <b>${booking.check_in || '-'}</b></div>
+                    <div class="text-sm">Check-out: <b>${booking.check_out || '-'}</b></div>
                     <div class="text-sm">Total Harga: <b>${formatCurrency(booking.total_price)}</b></div>
                     <div class="text-sm">Status: <span class="font-semibold ${booking.status === 'cancelled' ? 'text-red-500' : 'text-green-600'}">${booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}</span></div>
                     ${booking.status === 'confirmed' ? `<button class="btn-cancel-booking bg-red-500 text-white px-4 py-2 rounded mt-2" data-booking-id="${booking.id}">Batalkan Pemesanan</button>` : ''}
