@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Dummy Data as Initial Showcase ---
     // const allHotels = [ ... ]; // DIHAPUS, digantikan dengan hasil fetch API
     let allHotels = [];
-    const allFacilitiesOptions = ['Kolam Renang', 'WiFi Gratis', 'Parkir', 'Restoran', 'Spa', 'Pusat Kebugaran'];
+    let allFacilitiesOptions = ['Kolam Renang', 'WiFi Gratis', 'Parkir', 'Restoran', 'Spa', 'Pusat Kebugaran'];
     let currentSort = '';
 
     // --- Helpers ---
@@ -98,6 +98,20 @@ document.addEventListener('DOMContentLoaded', () => {
             body: formData
         });
         return response.json();
+    }
+
+    // Tambahkan fungsi ambil fasilitas dari API
+    async function fetchFacilities() {
+        try {
+            const response = await fetch('api_get_facilities.php');
+            const data = await response.json();
+            if (data.success && Array.isArray(data.facilities)) {
+                return data.facilities.map(f => f.name);
+            }
+            return [];
+        } catch (err) {
+            return [];
+        }
     }
 
     // --- Navigation Logic & STATE ---
@@ -701,7 +715,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('search-results-count').textContent = `Menemukan ${filteredHotels.length} hotel`;
     }
 
-    function setupFilters() {
+    // Ubah setupFilters menjadi async dan ambil fasilitas dari API
+    async function setupFilters() {
         // Harga min/maks dari data hotel
         const prices = allHotels.map(h => h.price);
         const minPrice = Math.min(...prices, 0);
@@ -711,37 +726,58 @@ document.addEventListener('DOMContentLoaded', () => {
         const priceMaxInput = document.getElementById('price-max-input');
         const priceMinLabel = document.getElementById('price-min-label');
         const priceMaxLabel = document.getElementById('price-max-label');
-        // Set default value
-        priceSlider.min = minPrice;
-        priceSlider.max = maxPrice;
-        priceSlider.value = maxPrice;
+        // Inisialisasi noUiSlider dua arah
+        if (priceSlider.noUiSlider) priceSlider.noUiSlider.destroy();
+        noUiSlider.create(priceSlider, {
+            start: [minPrice, maxPrice],
+            connect: true,
+            step: 10000,
+            range: {
+                'min': minPrice,
+                'max': maxPrice
+            },
+            format: {
+                to: value => Math.round(value),
+                from: value => Number(value)
+            }
+        });
+        // Set nilai awal input
         priceMinInput.value = minPrice;
         priceMaxInput.value = maxPrice;
         priceMinLabel.textContent = formatCurrency(minPrice);
         priceMaxLabel.textContent = formatCurrency(maxPrice) + '+';
-        // Sinkronisasi slider dan input manual
-        priceSlider.addEventListener('input', (e) => {
-            priceMaxInput.value = e.target.value;
+        // Sinkronisasi slider -> input
+        priceSlider.noUiSlider.on('update', function(values, handle) {
+            const min = Math.round(values[0]);
+            const max = Math.round(values[1]);
+            priceMinInput.value = min;
+            priceMaxInput.value = max;
+            priceMinLabel.textContent = formatCurrency(min);
+            priceMaxLabel.textContent = formatCurrency(max) + '+';
+        });
+        priceSlider.noUiSlider.on('change', function() {
             applyFilters();
         });
-        priceMinInput.addEventListener('input', (e) => {
-            if (parseInt(e.target.value) > parseInt(priceMaxInput.value)) {
-                priceMinInput.value = priceMaxInput.value;
-            }
+        // Sinkronisasi input -> slider
+        priceMinInput.addEventListener('change', function() {
+            let min = parseInt(priceMinInput.value) || minPrice;
+            let max = parseInt(priceMaxInput.value) || maxPrice;
+            if (min > max) min = max;
+            priceSlider.noUiSlider.set([min, max]);
             applyFilters();
         });
-        priceMaxInput.addEventListener('input', (e) => {
-            if (parseInt(e.target.value) < parseInt(priceMinInput.value)) {
-                priceMaxInput.value = priceMinInput.value;
-            }
-            priceSlider.value = priceMaxInput.value;
+        priceMaxInput.addEventListener('change', function() {
+            let min = parseInt(priceMinInput.value) || minPrice;
+            let max = parseInt(priceMaxInput.value) || maxPrice;
+            if (max < min) max = min;
+            priceSlider.noUiSlider.set([min, max]);
             applyFilters();
         });
-        
+        // Ambil fasilitas dari API
+        allFacilitiesOptions = await fetchFacilities();
         const starContainer = document.getElementById('star-filter-options');
         starContainer.innerHTML = [5, 4, 3, 2, 1].map(star => `<label class="flex items-center"><input type="checkbox" value="${star}" class="h-5 w-5 rounded border-gray-300 text-brand-green"><span class="ml-3 text-brand-grey">${star} Bintang</span></label>`).join('');
         starContainer.addEventListener('change', applyFilters);
-
         const facilityContainer = document.getElementById('facility-filter-options');
         facilityContainer.innerHTML = allFacilitiesOptions.map(f => `<label class="flex items-center"><input type="checkbox" value="${f}" class="h-5 w-5 rounded border-gray-300 text-brand-green"><span class="ml-3 text-brand-grey">${f}</span></label>`).join('');
         facilityContainer.addEventListener('change', applyFilters);
