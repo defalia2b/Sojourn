@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sojourn - Booking Hotel Profesional</title>
+    
+    <!-- Library CSS from 3rd Party: Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom File CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+
+    <!-- App Main Container -->
+    <div id="app-container">
+
+        <!-- ====================================================== -->
+        <!-- Header / Navbar -->
+        <!-- ====================================================== -->
+        <header id="main-header" class="sticky top-0 z-50 bg-white shadow-md">
+            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+                <a href="#" onclick="navigate('home')" class="flex items-center gap-2">
+                    <div class="bg-brand-green text-white p-2 rounded-full">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    </div>
+                    <span class="text-2xl font-bold text-brand-black">Sojourn</span>
+                </a>
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#" onclick="navigate('home')" class="nav-link">Home</a>
+                    <a href="#" onclick="navigate('search')" class="nav-link">Explore Hotel</a>
+                </nav>
+                <!-- Login/Logout will be rendered by JS -->
+                <div id="auth-button-container" class="flex-shrink-0"></div>
+            </div>
+        </header>
+
+        <!-- ====================================================== -->
+        <!-- Page Content (Only one which is active) -->
+        <!-- ====================================================== -->
+        <main>
+            <!-- Main Page: Home -->
+            <div id="home-page" class="page-content">
+                <!-- Hero Section -->
+                <section class="relative h-[600px] flex items-center justify-center text-center text-white">
+                    <div class="absolute inset-0 bg-black opacity-40"></div>
+                    <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070&auto=format&fit=crop" class="absolute inset-0 w-full h-full object-cover" alt="Kolam renang hotel mewah">
+                    <div class="relative z-10 p-6">
+                        <div class="flex items-center justify-center mb-4">
+                            <div class="bg-brand-green text-white p-3 rounded-full mr-4">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            </div>
+                            <h1 class="text-7xl font-bold">Sojourn</h1>
+                        </div>
+                        <p class="text-2xl font-light">Find your perfect hotel to stay</p>
+                    </div>
+                </section>
+                <!-- Search Bar Container -->
+                <div class="relative container mx-auto px-4 -mt-12 z-20">
+                    <div id="home-search-bar" class="bg-white p-6 rounded-2xl shadow-xl">
+                        <!-- Search bar content will be rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Most Loved Hotels Section -->
+                <section class="py-20 bg-gray-100">
+                    <div class="container mx-auto px-6">
+                        <div class="flex justify-between items-center mb-8"><h2 class="text-3xl font-bold text-brand-black">Stay cozy in these most-loved hotels</h2><button onclick="navigate('search')" class="view-all-button">View All</button></div>
+                        <div id="popular-hotels-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Search Result Page: Search -->
+            <div id="search-page" class="page-content hidden">
+                 <main class="container mx-auto px-6 py-8">
+                    <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                        <div id="search-page-bar">
+                            <!-- Search bar on search page result page will be rendered by JS -->
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <aside class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm self-start">
+                            <h2 class="text-xl font-bold text-brand-black mb-6">Filter</h2>
+                            <div class="mb-6">
+                                <h3 class="font-semibold text-brand-black mb-4">Harga Maksimal per Malam</h3>
+                                <span id="price-max-display" class="p-2 border border-gray-200 rounded-lg"></span>
+                                <input type="range" id="price-range-slider" class="w-full mt-4" min="1000000" max="5000000" step="100000">
+                            </div>
+                            <div class="mb-6">
+                                <h3 class="font-semibold text-brand-black mb-3">Rating Bintang</h3>
+                                <div id="star-filter-options" class="space-y-2"></div>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-brand-black mb-3">Fasilitas</h3>
+                                <div id="facility-filter-options" class="space-y-2"></div>
+                            </div>
+                        </aside>
+                        <section class="lg:col-span-3">
+                            <p id="search-results-count" class="text-sm text-brand-grey mb-4"></p>
+                            <div id="search-results-list" class="space-y-6"></div>
+                        </section>
+                    </div>
+                </main>
+            </div>
+            
+            <!-- Hotel Detail Page -->
+            <div id="detail-page" class="page-content hidden">
+                <div id="hotel-detail-content" class="container mx-auto px-6 py-12"></div>
+            </div>
+
+            <!-- Booking Page -->
+            <div id="booking-page" class="page-content hidden">
+                <div class="container mx-auto px-6 py-12">
+                    <h2 class="text-3xl font-bold text-center text-brand-black mb-8">Formulir Pemesanan</h2>
+                    <div id="booking-form-content" class="grid grid-cols-1 lg:grid-cols-3 gap-8"></div>
+                </div>
+            </div>
+
+            <!-- Confirmation Page -->
+            <div id="confirmation-page" class="page-content hidden">
+                <div id="confirmation-content" class="container mx-auto px-6 py-12 text-center"></div>
+            </div>
+
+            <!-- Login Page -->
+            <div id="login-page" class="page-content hidden">
+                <div class="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+                    <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg">
+                        <a href="#" onclick="navigate('home')" class="flex items-center gap-2 justify-center mb-8">
+                            <div class="bg-brand-green text-white p-2 rounded-full"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg></div>
+                            <span class="text-2xl font-bold text-brand-black">Sojourn</span>
+                        </a>
+                        <div id="login-form-container"></div>
+                        <div id="register-form-container" class="hidden"></div>
+                        <div id="forgot-form-container" class="hidden"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ====================================================== -->
+        <!-- Footer Page -->
+        <!-- ====================================================== -->
+        <footer id="main-footer" class="bg-brand-black text-white">
+            <div class="container mx-auto px-6 py-12">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div><h3 class="text-lg font-bold">Sojourn</h3><p class="mt-4 text-gray-400">Find your perfect hotel to stay in Indonesia.</p></div>
+                    <div><h3 class="text-lg font-bold">Quick Links</h3><ul class="mt-4 space-y-2"><li><a href="#" onclick="navigate('home')" class="text-gray-400 hover:text-white">Home</a></li><li><a href="#" onclick="navigate('search')" class="text-gray-400 hover:text-white">Hotels</a></li></ul></div>
+                    <div><h3 class="text-lg font-bold">Contact Us</h3><ul class="mt-4 space-y-2 text-gray-400"><li class="flex items-center gap-2">Jakarta, Indonesia</li><li class="flex items-center gap-2">(021) 123-4567</li><li class="flex items-center gap-2">contact@sojourn.com</li></ul></div>
+                    <div><h3 class="text-lg font-bold">Follow Us</h3><div class="flex mt-4 space-x-4"><a href="#" class="text-gray-400 hover:text-white">FB</a><a href="#" class="text-gray-400 hover:text-white">TW</a><a href="#" class="text-gray-400 hover:text-white">IG</a></div></div>
+                </div>
+                <div class="mt-12 border-t border-gray-800 pt-8 text-center text-gray-500">&copy; 2025 Sojourn. All rights reserved.</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading the Custom JS File -->
+    <script src="js/script.js"></script>
+</body>
+</html>

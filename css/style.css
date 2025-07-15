@@ -1,0 +1,189 @@
+/* =================================================================
+   Fondation Setup and Font Prep
+   ================================================================= */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #F9FAFB; /* bg-gray-50 */
+}
+
+/* =================================================================
+   Color Pallete & Support Class
+   ================================================================= */
+.bg-brand-green { background-color: #24AB70; }
+.text-brand-green { color: #24AB70; }
+.border-brand-green { border-color: #24AB70; }
+.bg-brand-light-green { background-color: #F2FAF6; }
+.text-brand-grey { color: #555555; }
+.text-brand-black { color: #222222; }
+
+/* =================================================================
+   Header Component
+   ================================================================= */
+.nav-link {
+    color: #555555;
+    transition: color 0.3s ease;
+    padding-bottom: 4px;
+    border-bottom: 2px solid transparent;
+}
+.nav-link:hover {
+    color: #24AB70;
+    border-bottom-color: #24AB70;
+}
+
+/* =================================================================
+   Search Bar
+   ================================================================= */
+#home-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+#search-page-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0;
+}
+
+.search-bar-grid {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .search-bar-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.search-field {
+    padding: 0.5rem;
+    border-right: 1px solid #E5E7EB; /* border-gray-200 */
+}
+
+.search-field:last-child {
+    border-right: none;
+}
+
+.search-field label {
+    display: block;
+    font-size: 0.875rem; /* 14px */
+    font-weight: 600; /* semibold */
+    color: #374151; /* gray-700 */
+}
+
+.search-field input {
+    width: 100%;
+    border: none;
+    background-color: transparent;
+    padding: 0.25rem 0 0 0;
+    font-size: 1rem; /* 16px */
+    color: #111827; /* gray-900 */
+}
+
+.search-field input:focus {
+    outline: none;
+    --tw-ring-shadow: none; /* Untuk menghilangkan ring focus bawaan tailwind */
+}
+
+.search-button-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #24AB70;
+    color: white;
+    border-radius: 0.75rem; /* rounded-xl */
+    font-weight: 700;
+    font-size: 1.125rem; /* text-lg */
+    height: 100%;
+    padding: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.search-button-main:hover {
+    background-color: #1A8C5A;
+}
+
+
+/* =================================================================
+   General Input Form
+   ================================================================= */
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #D1D5DB; /* border-gray-300 */
+    border-radius: 0.5rem; /* rounded-lg */
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+.form-input:focus {
+    outline: none;
+    border-color: #24AB70;
+    box-shadow: 0 0 0 2px rgba(36, 171, 112, 0.2);
+}
+
+/* =================================================================
+   Other BUTTONS
+   ================================================================= */
+.view-all-button {
+    background-color: #F2FAF6;
+    color: #24AB70;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+.view-all-button:hover {
+    background-color: #D1FAE5;
+}
+
+.ai-button {
+    margin-top: 1.5rem; /* mt-6 */
+    width: 100%;
+    background-color: #24AB70;
+    color: white;
+    padding: 1rem 0;
+    border-radius: 0.5rem; /* rounded-lg */
+    font-weight: 700;
+    font-size: 1.125rem; /* text-lg */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem; /* gap-3 */
+    transition: all 0.3s;
+}
+.ai-button:hover {
+    background-color: #1A8C5A;
+    transform: scale(1.02);
+}
+.ai-button:disabled {
+    background-color: #9CA3AF; /* gray-400 */
+    cursor: not-allowed;
+}
+
+/* =================================================================
+   STYLING
+   ================================================================= */
+#itinerary-result h1, 
+#itinerary-result h2, 
+#itinerary-result h3 {
+    font-weight: bold;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+#itinerary-result h1 { font-size: 1.5em; }
+#itinerary-result h2 { font-size: 1.25em; }
+#itinerary-result h3 { font-size: 1.1em; }
+#itinerary-result ul, 
+#itinerary-result ol {
+    list-style-position: inside;
+    margin-left: 1rem;
+    margin-bottom: 1rem;
+}
+#itinerary-result ul { list-style-type: disc; }
+#itinerary-result p { margin-bottom: 0.5rem; }
+#itinerary-result a { color: #24AB70; text-decoration: underline; }
+#itinerary-result strong { font-weight: 600; }
