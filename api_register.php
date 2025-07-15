@@ -22,12 +22,9 @@ if (!$name || !$email || !$password) {
     exit();
 }
 
-// Hash password
-$hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
 // Simpan ke database
 $stmt = $conn->prepare('INSERT INTO users (name, email, password) VALUES (?, ?, ?)');
-$stmt->bind_param('sss', $name, $email, $hashed_password);
+$stmt->bind_param('sss', $name, $email, $password);
 if ($stmt->execute()) {
     echo json_encode(['success' => true, 'message' => 'Registrasi berhasil']);
 } else {

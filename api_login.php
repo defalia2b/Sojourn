@@ -24,7 +24,7 @@ $stmt->bind_param('s', $email);
 $stmt->execute();
 $result = $stmt->get_result();
 if ($user = $result->fetch_assoc()) {
-    if (password_verify($password, $user['password'])) {
+    if ($password === $user['password']) {
         unset($user['password']);
         echo json_encode(['success' => true, 'user' => $user]);
     } else {

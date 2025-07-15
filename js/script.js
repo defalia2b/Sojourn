@@ -301,6 +301,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const hotel = allHotels.find(h => h.id == hotelId);
+        let totalNights = 1;
+        let totalPrice = hotel.price * 1.1;
         document.getElementById('booking-form-content').innerHTML = `
             <div class="lg:col-span-2">
                 <h3 class="text-2xl font-bold text-brand-black mb-6">Isi Data Pemesanan</h3>
@@ -322,27 +324,60 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4 class="text-xl font-bold">${hotel.name}</h4>
                     <p class="text-brand-grey">${hotel.location}</p>
                     <div class="border-t my-4"></div>
-                    <div class="flex justify-between"><p>Harga per malam</p><p class="font-semibold">${formatCurrency(hotel.price)}</p></div>
-                    <div class="flex justify-between mt-2"><p>Pajak & Layanan (10%)</p><p class="font-semibold">${formatCurrency(hotel.price * 0.1)}</p></div>
+                    <div class="flex justify-between"><p>Harga per malam</p><p class="font-semibold" id="harga-per-malam">${formatCurrency(hotel.price)}</p></div>
+                    <div class="flex justify-between mt-2"><p>Pajak & Layanan (10%)</p><p class="font-semibold" id="pajak">${formatCurrency(hotel.price * 0.1)}</p></div>
+                    <div class="flex justify-between mt-2"><p>Jumlah Malam</p><p class="font-semibold" id="jumlah-malam">${totalNights}</p></div>
                     <div class="border-t my-4"></div>
-                    <div class="flex justify-between text-xl font-bold"><p>Total</p><p>${formatCurrency(hotel.price * 1.1)}</p></div>
+                    <div class="flex justify-between text-xl font-bold"><p>Total</p><p id="total-harga">${formatCurrency(totalPrice)}</p></div>
                 </div>
             </div>
         `;
-        document.getElementById('booking-form').addEventListener('submit', (e) => handleBooking(e, hotel.id));
+        // Update harga otomatis saat tanggal diubah
+        const checkinInput = document.getElementById('checkin-date');
+        const checkoutInput = document.getElementById('checkout-date');
+        function updateSummary() {
+            const checkin = checkinInput.value;
+            const checkout = checkoutInput.value;
+            let nights = 1;
+            if (checkin && checkout) {
+                const d1 = new Date(checkin);
+                const d2 = new Date(checkout);
+                nights = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+                if (nights < 1) nights = 1;
+            }
+            totalNights = nights;
+            totalPrice = hotel.price * totalNights * 1.1;
+            document.getElementById('jumlah-malam').textContent = totalNights;
+            document.getElementById('total-harga').textContent = formatCurrency(totalPrice);
+        }
+        checkinInput.addEventListener('change', updateSummary);
+        checkoutInput.addEventListener('change', updateSummary);
+        document.getElementById('booking-form').addEventListener('submit', (e) => handleBooking(e, hotel.id, totalNights, totalPrice));
     }
 
-    function handleBooking(event, hotelId) {
+    function handleBooking(event, hotelId, totalNights, totalPrice) {
         event.preventDefault();
         const hotel = allHotels.find(h => h.id == hotelId);
         const checkin = event.target.elements['checkin-date'].value;
         const checkout = event.target.elements['checkout-date'].value;
         const guests = event.target.elements['guests'].value;
+        // Validasi tanggal
+        if (!checkin || !checkout) {
+            alert('Tanggal check-in dan check-out harus diisi.');
+            return;
+        }
+        const d1 = new Date(checkin);
+        const d2 = new Date(checkout);
+        if (d2 <= d1) {
+            alert('Tanggal check-out harus setelah check-in.');
+            return;
+        }
         const bookingData = {
             user_id: currentUser.id,
             hotel_id: hotel.id,
-            checkin,
-            checkout,
+            check_in_date: checkin,
+            check_out_date: checkout,
+            total_price: Math.round(totalPrice),
             guests
         };
         apiCreateBooking(bookingData).then(result => {
@@ -351,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     hotelName: hotel.name,
                     checkin,
                     checkout,
-                    totalPrice: formatCurrency(hotel.price * 1.1),
+                    totalPrice: formatCurrency(totalPrice),
                     bookingId: result.booking_id || `SOJ-${Date.now()}`
                 };
                 navigate('confirmation', bookingInfo);

@@ -23,6 +23,11 @@ if (!$user_id || !$hotel_id || !$checkin_date || !$checkout_date || !$total_pric
 }
 
 $booking_id = 'SOJ-' . round(microtime(true) * 1000);
+// Validasi tanggal check-in dan check-out
+if ($checkin_date >= $checkout_date) {
+    echo json_encode(['success' => false, 'message' => 'Tanggal check-out harus setelah check-in']);
+    exit();
+}
 $stmt = $conn->prepare('INSERT INTO bookings (id, user_id, hotel_id, checkin_date, checkout_date, total_price) VALUES (?, ?, ?, ?, ?, ?)');
 $stmt->bind_param('siissi', $booking_id, $user_id, $hotel_id, $checkin_date, $checkout_date, $total_price);
 if ($stmt->execute()) {
