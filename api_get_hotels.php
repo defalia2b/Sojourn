@@ -66,6 +66,28 @@ if ($result && $result->num_rows > 0) {
             continue;
         }
         $row['facilities'] = $facilities;
+        // Ambil room_types (array objek)
+        $room_types = [];
+        $r_sql = 'SELECT id, name, price, availability, image_gallery FROM room_types WHERE hotel_id = ?';
+        $r_stmt = $conn->prepare($r_sql);
+        $r_stmt->bind_param('i', $hotel_id);
+        $r_stmt->execute();
+        $r_result = $r_stmt->get_result();
+        while ($r_row = $r_result->fetch_assoc()) {
+            $room_types[] = $r_row;
+        }
+        $r_stmt->close();
+        $row['room_types'] = $room_types;
+        // Ambil rata-rata rating review dan jumlah review
+        $review_sql = "SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM reviews WHERE hotel_id = ?";
+        $review_stmt = $conn->prepare($review_sql);
+        $review_stmt->bind_param('i', $hotel_id);
+        $review_stmt->execute();
+        $review_result = $review_stmt->get_result();
+        $review_data = $review_result->fetch_assoc();
+        $row['avg_review_rating'] = $review_data['avg_rating'] ? round($review_data['avg_rating'], 1) : null;
+        $row['review_count'] = $review_data['review_count'] ? intval($review_data['review_count']) : 0;
+        $review_stmt->close();
         $hotels[] = $row;
     }
 }

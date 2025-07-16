@@ -68,6 +68,9 @@ CREATE TABLE IF NOT EXISTS `bookings` (
     `checkin_date` DATE NOT NULL,
     `checkout_date` DATE NOT NULL,
     `total_price` INT NOT NULL,
+    `guests` INT NOT NULL DEFAULT 1 COMMENT 'Jumlah tamu',
+    `special_requests` TEXT COMMENT 'Permintaan khusus dari tamu',
+    `status` ENUM('confirmed', 'cancelled', 'finished') NOT NULL DEFAULT 'confirmed',
     `booking_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
     FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE
@@ -194,3 +197,101 @@ CREATE TABLE `room_types` (
       `image_gallery` TEXT COMMENT 'Menyimpan URL gambar galeri, dipisahkan koma',
       FOREIGN KEY (`hotel_id`) REFERENCES `hotels`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Menghapus data ulasan lama untuk menghindari duplikasi jika skrip dijalankan ulang
+DELETE FROM `reviews`;
+
+-- Reset AUTO_INCREMENT untuk memastikan ID dimulai dari 1
+ALTER TABLE `reviews` AUTO_INCREMENT = 1;
+
+-- Mengisi tabel `reviews` dengan berbagai macam ulasan
+INSERT INTO `reviews` (`hotel_id`, `user_id`, `rating`, `comment`, `created_at`) VALUES
+-- Ulasan untuk The Ritz-Carlton (hotel_id = 1)
+(1, 1, 10, 'Pengalaman menginap yang luar biasa! Pelayanannya sempurna, kamarnya sangat mewah dan bersih. Pemandangan dari kamar sangat menakjubkan. Pasti akan kembali lagi.', '2024-05-10 14:30:00'),
+(1, 2, 8, 'Hotel yang sangat bagus di lokasi strategis. Fasilitas gym dan kolam renangnya terbaik. Makanannya enak, meskipun harganya sedikit mahal. Secara keseluruhan sangat memuaskan.', '2024-06-22 11:15:00'),
+(1, 3, 9, 'Sebagai seorang pebisnis, saya sangat menghargai fasilitas business center dan kecepatan WiFi di sini. Semuanya efisien dan berkelas. Sangat direkomendasikan untuk perjalanan bisnis.', '2024-07-01 09:00:00'),
+
+-- Ulasan untuk GH Universal Hotel (hotel_id = 2)
+(2, 1, 7, 'Arsitektur hotelnya unik dan indah, serasa di Eropa. Kamarnya nyaman, tapi beberapa perabotan terlihat sedikit usang. Cocok untuk liburan keluarga dengan budget menengah.', '2024-04-15 18:45:00'),
+(2, 2, 5, 'Lokasinya agak jauh dari pusat kota Bandung. Proses check-in cukup lama dan stafnya kurang ramah. Kolam renangnya juga terlalu ramai saat akhir pekan. Pengalaman yang biasa saja.', '2024-05-20 16:00:00'),
+
+-- Ulasan untuk The Anvaya Beach Resort (hotel_id = 3)
+(3, 2, 10, 'Surga di Bali! Akses langsung ke pantai, kolam renang yang luas, dan suasana resort yang sangat menenangkan. Staf sangat ramah dan membantu. Sarapan paginya sangat beragam dan lezat. Sempurna!', '2024-07-05 12:30:00'),
+(3, 1, 9, 'Tempat yang sempurna untuk bersantai. Spa-nya sangat direkomendasikan. Kamar dengan pemandangan laut benar-benar sepadan dengan harganya. Sedikit ramai, tapi itu wajar untuk lokasi di Kuta.', '2024-06-18 20:10:00'),
+(3, 3, 8, 'Resort yang indah dengan fasilitas lengkap. Sangat menikmati waktu di sini. Hanya saja, layanan kamar pada malam hari sedikit lambat. Selain itu, semuanya bagus.', '2024-07-11 22:05:00'),
+
+-- Ulasan untuk Hotel Indonesia Kempinski (hotel_id = 4)
+(4, 3, 10, 'Ikon kemewahan sejati di Jakarta. Semuanya terasa sempurna, dari lobi yang megah hingga kamar yang elegan. Pelayanan personal yang diberikan staf tidak ada duanya. Lokasi di Bundaran HI adalah nilai tambah yang luar biasa.', '2024-03-25 08:55:00'),
+(4, 1, 9, 'Menginap di sini untuk acara kantor. Ruang meeting sangat representatif dan teknologinya canggih. Makanan saat coffee break juga sangat berkualitas. Sangat berkesan.', '2024-06-28 13:00:00'),
+
+-- Ulasan untuk The Langham, Jakarta (hotel_id = 5)
+(5, 2, 9, 'Hotel baru yang sangat mewah dengan desain interior yang menawan. Pemandangan dari rooftop bar-nya adalah yang terbaik di Jakarta. Sedikit mahal, tapi Anda mendapatkan kualitas yang sepadan.', '2024-07-02 19:20:00'),
+(5, 1, 4, 'Check-in sangat lambat, menunggu hampir satu jam. AC di kamar saya juga tidak berfungsi dengan baik pada malam pertama. Untuk hotel sekelas ini, pengalaman saya di bawah ekspektasi.', '2024-07-10 15:00:00'),
+(5, 3, 7, 'Secara umum hotel ini bagus. Kamarnya luas dan tempat tidurnya sangat nyaman. Namun, pilihan menu sarapannya kurang bervariasi dibandingkan hotel bintang lima lainnya.', '2024-06-12 10:00:00'),
+
+-- Ulasan tanpa komentar
+(2, 3, 6, NULL, '2024-05-30 11:00:00'),
+(4, 2, 10, NULL, '2024-07-08 17:00:00');
+
+
+-- Menambahkan data contoh untuk tabel room_types
+-- Semua tipe kamar akan menggunakan gambar 'img/hotel_room/1.png'
+
+-- Hotel 1
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(1, 'Kamar Standard', 500000.00, 10, 'img/hotel_room/1.png'),
+(1, 'Kamar Deluxe', 750000.00, 8, 'img/hotel_room/1.png'),
+(1, 'Suite Junior', 1200000.00, 5, 'img/hotel_room/1.png');
+
+-- Hotel 2
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(2, 'Kamar Twin', 650000.00, 12, 'img/hotel_room/1.png'),
+(2, 'Kamar King', 850000.00, 6, 'img/hotel_room/1.png'),
+(2, 'Suite Keluarga', 1500000.00, 4, 'img/hotel_room/1.png');
+
+-- Hotel 3
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(3, 'Kamar Superior', 800000.00, 15, 'img/hotel_room/1.png'),
+(3, 'Kamar Deluxe Pemandangan Kota', 1100000.00, 7, 'img/hotel_room/1.png'),
+(3, 'Suite Eksekutif', 1800000.00, 3, 'img/hotel_room/1.png');
+
+-- Hotel 4
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(4, 'Kamar Standard Queen', 550000.00, 20, 'img/hotel_room/1.png'),
+(4, 'Kamar Deluxe King', 900000.00, 10, 'img/hotel_room/1.png'),
+(4, 'Suite Presidential', 2500000.00, 2, 'img/hotel_room/1.png');
+
+-- Hotel 5
+INSERT INTO `room_types` (`hotel_id`, `name`, `price`, `availability`, `image_gallery`) VALUES
+(5, 'Kamar Single', 450000.00, 8, 'img/hotel_room/1.png'),
+(5, 'Kamar Double', 700000.00, 12, 'img/hotel_room/1.png'),
+(5, 'Kamar Keluarga', 1300000.00, 0, 'img/hotel_room/1.png');
+
+ALTER TABLE `bookings` ADD COLUMN `status` VARCHAR(20) NOT NULL DEFAULT 'confirmed' AFTER `total_price`; 
+
+ALTER TABLE `hotels`
+ADD COLUMN `latitude` DECIMAL(10, 8) NULL,
+ADD COLUMN `longitude` DECIMAL(11, 8) NULL;
+
+-- Mengisi data koordinat untuk hotel yang ada
+
+-- Hotel di Jakarta (ID: 1, 4, 5)
+UPDATE `hotels` 
+SET 
+    `latitude` = -6.2088, -- Latitude untuk Jakarta
+    `longitude` = 106.8456 -- Longitude untuk Jakarta
+WHERE `id` IN (1, 4, 5);
+
+-- Hotel di Bandung (ID: 2)
+UPDATE `hotels` 
+SET 
+    `latitude` = -6.9175, -- Latitude untuk Bandung
+    `longitude` = 107.6191 -- Longitude untuk Bandung
+WHERE `id` = 2;
+
+-- Hotel di Bali (ID: 3)
+UPDATE `hotels` 
+SET 
+    `latitude` = -8.7193, -- Latitude untuk area Kuta, Bali
+    `longitude` = 115.1685 -- Longitude untuk area Kuta, Bali
+WHERE `id` = 3;
