@@ -1,5 +1,41 @@
 // FUNGSI GLOBAL DI LUAR
 let currentUser = null;
+
+// Global function untuk cancel booking
+window.cancelBooking = async function(bookingId) {
+    console.log('cancelBooking called with bookingId:', bookingId);
+    if (!confirm('Yakin ingin membatalkan pemesanan ini?')) return;
+    
+    try {
+        const response = await fetch('api_cancel_booking.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ booking_id: bookingId })
+        });
+        const result = await response.json();
+        console.log('Cancel booking result:', result);
+        
+        if (result.success) {
+            alert('Pemesanan berhasil dibatalkan.');
+            // Refresh booking list
+            if (window.location.hash === '#history') {
+                fetchAndRenderBookings();
+            }
+        } else {
+            alert(result.message || 'Gagal membatalkan pemesanan.');
+        }
+    } catch (error) {
+        console.error('Error canceling booking:', error);
+        alert('Terjadi kesalahan saat membatalkan pemesanan.');
+    }
+};
+
+// Global function untuk continue payment (jika diperlukan)
+window.continuePayment = function(bookingId) {
+    alert('Fitur pembayaran sedang dalam pengembangan.');
+    // Implementasi pembayaran bisa ditambahkan di sini
+};
+
 window.navigate = function(pageId, data = null) {
     if (window.location.hash !== '#' + pageId) {
         window.location.hash = '#' + pageId;
@@ -880,12 +916,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Check-in</label>
-                                        <input type="date" id="checkin-date" required class="form-input" min="${today}">
+                                        <input type="date" id="checkin-date" name="checkin-date" required class="form-input" min="${today}">
                                         <p class="text-xs text-gray-500 mt-1">Check-in mulai pukul 14:00</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Check-out</label>
-                                        <input type="date" id="checkout-date" required class="form-input" min="${tomorrow}">
+                                        <input type="date" id="checkout-date" name="checkout-date" required class="form-input" min="${tomorrow}">
                                         <p class="text-xs text-gray-500 mt-1">Check-out hingga pukul 12:00</p>
                                     </div>
                                 </div>
@@ -927,6 +963,18 @@ document.addEventListener('DOMContentLoaded', () => {
                                     Permintaan Khusus (Opsional)
                                 </h4>
                                 <textarea name="special_requests" rows="3" placeholder="Contoh: Kamar dengan pemandangan kota, tempat tidur tambahan, atau permintaan khusus lainnya..." class="form-input resize-none"></textarea>
+                            </div>
+                            
+                            <!-- Tombol Booking -->
+                            <div class="pt-6">
+                                <button type="submit" id="booking-submit-btn" class="w-full bg-brand-green text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-200">
+                                    <div class="flex items-center justify-center">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                        </svg>
+                                        Lanjutkan ke Pembayaran
+                                    </div>
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -992,16 +1040,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <li>• Konfirmasi booking akan dikirim via email</li>
                             </ul>
                         </div>
-
-                        <!-- Tombol Booking -->
-                        <button type="submit" form="booking-form" class="w-full bg-brand-green text-white py-4 rounded-xl font-bold text-lg hover:bg-green-700 transition-colors duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-200">
-                            <div class="flex items-center justify-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                                </svg>
-                                Lanjutkan ke Pembayaran
-                            </div>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -1059,16 +1097,41 @@ document.addEventListener('DOMContentLoaded', () => {
         checkoutInput.value = tomorrow;
         updateSummary();
 
-        document.getElementById('booking-form').addEventListener('submit', (e) => handleBooking(e, hotel.id, totalNights, totalPrice));
+        // Add event listener to the booking form
+        const bookingForm = document.getElementById('booking-form');
+        console.log('Booking form found:', bookingForm);
+        
+        if (bookingForm) {
+            // Simple event listener
+            bookingForm.onsubmit = (e) => {
+                console.log('Form onsubmit triggered!');
+                e.preventDefault();
+                
+                // Get form data directly
+                const formData = new FormData(bookingForm);
+                const checkin = formData.get('checkin-date') || '';
+                const checkout = formData.get('checkout-date') || '';
+                const guests = formData.get('guests') || '1';
+                const specialRequests = formData.get('special_requests') || '';
+                
+                console.log('Form data from FormData:', { checkin, checkout, guests, specialRequests });
+                
+                // Call handleBooking with form data
+                handleBookingWithData(e, hotel.id, totalNights, totalPrice, checkin, checkout, guests, specialRequests);
+            };
+        }
     }
 
-    function handleBooking(event, hotelId, totalNights, totalPrice) {
-        event.preventDefault();
+    function handleBookingWithData(event, hotelId, totalNights, totalPrice, checkin, checkout, guests, specialRequests) {
+        console.log('handleBookingWithData called with:', { hotelId, totalNights, totalPrice, checkin, checkout, guests, specialRequests });
+        console.log('allHotels:', allHotels);
         const hotel = allHotels.find(h => h.id == hotelId);
-        const checkin = event.target.elements['checkin-date'].value;
-        const checkout = event.target.elements['checkout-date'].value;
-        const guests = event.target.elements['guests'].value;
-        const specialRequests = event.target.elements['special_requests']?.value || '';
+        console.log('Found hotel:', hotel);
+        
+        if (!hotel) {
+            alert('Hotel tidak ditemukan.');
+            return;
+        }
         
         // Validasi tanggal
         if (!checkin || !checkout) {
@@ -1091,8 +1154,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const bookingData = {
             user_id: currentUser.id,
             hotel_id: hotel.id,
-            check_in_date: checkin,
-            check_out_date: checkout,
+            checkin_date: checkin,
+            checkout_date: checkout,
             total_price: Math.round(totalPrice),
             guests,
             special_requests: specialRequests
@@ -1112,7 +1175,9 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         submitButton.disabled = true;
         
+        console.log('Sending booking data:', bookingData);
         apiCreateBooking(bookingData).then(result => {
+            console.log('Booking API result:', result);
             if (result.success) {
                 const bookingInfo = {
                     hotelName: hotel.name,
@@ -1130,7 +1195,108 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitButton.innerHTML = originalText;
                 submitButton.disabled = false;
             }
-        }).catch(() => {
+        }).catch((error) => {
+            console.error('Booking API error:', error);
+            alert('Pemesanan gagal.');
+            // Reset button
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
+        });
+    }
+
+    function handleBooking(event, hotelId, totalNights, totalPrice) {
+        event.preventDefault();
+        console.log('handleBooking called with:', { hotelId, totalNights, totalPrice });
+        console.log('allHotels:', allHotels);
+        const hotel = allHotels.find(h => h.id == hotelId);
+        console.log('Found hotel:', hotel);
+        
+        if (!hotel) {
+            alert('Hotel tidak ditemukan.');
+            return;
+        }
+        
+        // Get form values with fallback
+        const checkinElement = event.target.elements['checkin-date'];
+        const checkoutElement = event.target.elements['checkout-date'];
+        const guestsElement = event.target.elements['guests'];
+        const specialRequestsElement = event.target.elements['special_requests'];
+        
+        const checkin = checkinElement ? checkinElement.value : '';
+        const checkout = checkoutElement ? checkoutElement.value : '';
+        const guests = guestsElement ? guestsElement.value : '1';
+        const specialRequests = specialRequestsElement ? specialRequestsElement.value : '';
+        
+        console.log('Form data:', { checkin, checkout, guests, specialRequests });
+        console.log('Form elements:', event.target.elements);
+        console.log('Checkin element:', event.target.elements['checkin-date']);
+        console.log('Checkout element:', event.target.elements['checkout-date']);
+        console.log('Guests element:', event.target.elements['guests']);
+        
+        // Validasi tanggal
+        if (!checkin || !checkout) {
+            alert('Tanggal check-in dan check-out harus diisi.');
+            return;
+        }
+        const d1 = new Date(checkin);
+        const d2 = new Date(checkout);
+        if (d2 <= d1) {
+            alert('Tanggal check-out harus setelah check-in.');
+            return;
+        }
+        
+        // Validasi jumlah tamu
+        if (guests < 1 || guests > 6) {
+            alert('Jumlah tamu harus antara 1-6 orang.');
+            return;
+        }
+        
+        const bookingData = {
+            user_id: currentUser.id,
+            hotel_id: hotel.id,
+            checkin_date: checkin,
+            checkout_date: checkout,
+            total_price: Math.round(totalPrice),
+            guests,
+            special_requests: specialRequests
+        };
+        
+        // Tampilkan loading state
+        const submitButton = event.target.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = `
+            <div class="flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Memproses Pemesanan...
+            </div>
+        `;
+        submitButton.disabled = true;
+        
+        console.log('Sending booking data:', bookingData);
+        apiCreateBooking(bookingData).then(result => {
+            console.log('Booking API result:', result);
+            if (result.success) {
+                const bookingInfo = {
+                    hotelName: hotel.name,
+                    checkin,
+                    checkout,
+                    totalPrice: formatCurrency(totalPrice),
+                    bookingId: result.booking_id || `SOJ-${Date.now()}`,
+                    guests,
+                    specialRequests
+                };
+                navigate('confirmation', bookingInfo);
+            } else {
+                alert(result.message || 'Pemesanan gagal.');
+                // Reset button
+                submitButton.innerHTML = originalText;
+                submitButton.disabled = false;
+            }
+        }).catch((error) => {
+            console.error('Booking API error:', error);
             alert('Pemesanan gagal.');
             // Reset button
             submitButton.innerHTML = originalText;
@@ -1545,7 +1711,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </svg>
                                     <span class="text-sm font-medium text-gray-600">Check-in</span>
                                 </div>
-                                <p class="font-semibold text-brand-black">${booking.check_in}</p>
+                                <p class="font-semibold text-brand-black">${booking.checkin}</p>
                             </div>
                             <div class="bg-gray-50 rounded-lg p-3">
                                 <div class="flex items-center mb-1">
@@ -1554,7 +1720,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </svg>
                                     <span class="text-sm font-medium text-gray-600">Check-out</span>
                                 </div>
-                                <p class="font-semibold text-brand-black">${booking.check_out}</p>
+                                <p class="font-semibold text-brand-black">${booking.checkout}</p>
                             </div>
                         </div>
                         

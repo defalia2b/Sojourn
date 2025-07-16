@@ -13,8 +13,8 @@ if ($conn->connect_error) {
 
 $user_id = $_POST['user_id'] ?? '';
 $hotel_id = $_POST['hotel_id'] ?? '';
-$checkin_date = $_POST['check_in_date'] ?? '';
-$checkout_date = $_POST['check_out_date'] ?? '';
+$checkin_date = $_POST['checkin_date'] ?? '';
+$checkout_date = $_POST['checkout_date'] ?? '';
 $total_price = $_POST['total_price'] ?? '';
 $guests = $_POST['guests'] ?? 1;
 $special_requests = $_POST['special_requests'] ?? '';
@@ -47,7 +47,7 @@ if ($checkin_date < $today) {
 
 $stmt = $conn->prepare('INSERT INTO bookings (id, user_id, hotel_id, checkin_date, checkout_date, total_price, guests, special_requests, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
 $status = 'confirmed';
-$stmt->bind_param('siississ', $booking_id, $user_id, $hotel_id, $checkin_date, $checkout_date, $total_price, $guests, $special_requests, $status);
+$stmt->bind_param('siississs', $booking_id, $user_id, $hotel_id, $checkin_date, $checkout_date, $total_price, $guests, $special_requests, $status);
 
 if ($stmt->execute()) {
     echo json_encode([
