@@ -4,9 +4,29 @@ let currentUser = null;
 // Global function untuk cancel booking
 window.cancelBooking = async function(bookingId) {
     console.log('cancelBooking called with bookingId:', bookingId);
+    
+    // Prevent multiple simultaneous calls
+    if (window.cancelBookingInProgress) {
+        console.log('Cancel booking already in progress, ignoring call');
+        return;
+    }
+    
+    // Track cancelled bookings to prevent double cancellation
+    if (!window.cancelledBookings) {
+        window.cancelledBookings = new Set();
+    }
+    
+    if (window.cancelledBookings.has(bookingId)) {
+        console.log('Booking already cancelled, ignoring call');
+        return;
+    }
+    
     if (!confirm('Yakin ingin membatalkan pemesanan ini?')) return;
     
+    window.cancelBookingInProgress = true;
+    
     try {
+        console.log('Sending cancel request for booking:', bookingId);
         const response = await fetch('api_cancel_booking.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -14,12 +34,23 @@ window.cancelBooking = async function(bookingId) {
         });
         const result = await response.json();
         console.log('Cancel booking result:', result);
+        console.log('Response status:', response.status);
         
         if (result.success) {
+            // Mark this booking as cancelled to prevent double cancellation
+            window.cancelledBookings.add(bookingId);
             alert('Pemesanan berhasil dibatalkan.');
-            // Refresh booking list
+            
+            // Immediately refresh the booking list
             if (window.location.hash === '#history') {
-                fetchAndRenderBookings();
+                console.log('Refreshing booking list after successful cancellation');
+                if (typeof fetchAndRenderBookings === 'function') {
+                    fetchAndRenderBookings();
+                } else {
+                    console.error('fetchAndRenderBookings is not available');
+                    // Fallback: reload the page
+                    window.location.reload();
+                }
             }
         } else {
             alert(result.message || 'Gagal membatalkan pemesanan.');
@@ -27,6 +58,8 @@ window.cancelBooking = async function(bookingId) {
     } catch (error) {
         console.error('Error canceling booking:', error);
         alert('Terjadi kesalahan saat membatalkan pemesanan.');
+    } finally {
+        window.cancelBookingInProgress = false;
     }
 };
 
@@ -1613,23 +1646,32 @@ document.addEventListener('DOMContentLoaded', () => {
     window.showAllReviews = showAllReviews;
 
     // --- Riwayat Pemesanan ---
-    async function fetchAndRenderBookings() {
+    // Make fetchAndRenderBookings global so it can be called from cancelBooking
+    window.fetchAndRenderBookings = async function() {
+        console.log('fetchAndRenderBookings called');
         if (!currentUser) {
             navigate('login');
             return;
         }
         
+        // Clear cancelled bookings tracking when refreshing the list
+        if (window.cancelledBookings) {
+            window.cancelledBookings.clear();
+        }
+        
         const bookingListDiv = document.getElementById('booking-list');
-        bookingListDiv.innerHTML = `
-            <div class="col-span-full text-center py-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-                    <svg class="w-8 h-8 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
+        if (bookingListDiv) {
+            bookingListDiv.innerHTML = `
+                <div class="col-span-full text-center py-8">
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                        <svg class="w-8 h-8 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                    </div>
+                    <p class="text-gray-600">Memuat riwayat pemesanan...</p>
                 </div>
-                <p class="text-gray-600">Memuat riwayat pemesanan...</p>
-            </div>
-        `;
+            `;
+        }
         
         // Ambil daftar hotel yang sudah direview user login
         window.userReviewedHotels = {};
@@ -1647,10 +1689,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         try {
+            console.log('Fetching booking data...');
             const response = await fetch('api_get_my_bookings.php', { credentials: 'include' });
             const data = await response.json();
+            console.log('Booking data received:', data);
             if (!data.success) throw new Error(data.message || 'Gagal mengambil data pemesanan');
             const bookings = data.bookings || [];
+            console.log('Number of bookings:', bookings.length);
             
             if (bookings.length === 0) {
                 bookingListDiv.innerHTML = `
@@ -1773,41 +1818,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `).join('');
             
-            // Handle cancel
-            document.querySelectorAll('.btn-cancel-booking').forEach(btn => {
-                btn.onclick = async function() {
-                    const bookingId = this.getAttribute('data-booking-id');
-                    if (!confirm('Yakin ingin membatalkan pemesanan ini?')) return;
-                    const res = await fetch('api_cancel_booking.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ booking_id: bookingId })
-                    });
-                    fetchAndRenderBookings();
-                };
-            });
+            // Handle cancel - REMOVED: Using global cancelBooking function instead
             
-            // Handle finish
-            document.querySelectorAll('.btn-finish-booking').forEach(btn => {
-                btn.onclick = async function() {
-                    const bookingId = this.getAttribute('data-booking-id');
-                    if (!confirm('Sudah selesai menginap? Tandai selesai agar bisa review.')) return;
-                    const res = await fetch('api_finish_booking.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ booking_id: bookingId })
-                    });
-                    fetchAndRenderBookings();
-                };
-            });
-            
-            // Handle review
-            document.querySelectorAll('.btn-review-booking').forEach(btn => {
-                btn.onclick = function() {
-                    const hotelId = this.getAttribute('data-hotel-id');
-                    showReviewModal(hotelId);
-                };
-            });
+            // Handle finish - REMOVED: Not used in current HTML
+            // Handle review - REMOVED: Not used in current HTML
             
         } catch (err) {
             bookingListDiv.innerHTML = `
